@@ -1,0 +1,9 @@
+write a.c
+write b.c
+run
+run
+run double
+touch a.c
+run
+# %.o: %.c is no use at all for a .o with no .c anywhere near it
+run ghost.o

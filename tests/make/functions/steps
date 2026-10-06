@@ -1,0 +1,5 @@
+write zebra.c
+write alpha.c
+run
+write middle.c
+run

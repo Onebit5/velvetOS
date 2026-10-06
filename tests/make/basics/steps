@@ -1,0 +1,7 @@
+# phony targets run every time, which is the whole reason to say so
+run
+run
+# and -n prints even the quiet lines, since being told what would happen
+# is no use if the quiet half is left out
+run -n
+run greet

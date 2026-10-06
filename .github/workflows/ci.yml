@@ -1,0 +1,76 @@
+name: ci
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  # the style guide, as far as a machine can hold it. no toolchain and no
+  # build, so this is the fastest possible answer to a pull request, and it
+  # is the one that should come back first
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: style lint
+        run: make lint
+
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: install the toolchain
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            nasm xorriso qemu-system-x86
+
+      - name: versions, for when something inevitably breaks
+        run: |
+          gcc --version | head -1
+          nasm -v
+          qemu-system-x86_64 --version | head -1
+
+      # the fast feedback first: these are ordinary linux programs and
+      # they catch most of what a boot test would, in about a second
+      - name: host tests
+        run: make test
+
+      - name: build the kernel
+        run: make
+
+      # the iso went away in 0.1.12; philemon writes a disk image and that
+      # is what boots
+      - name: boot test
+        run: make boottest
+
+      # the kernel, the userland and the tools built by this project's own
+      # make, assembler, linker and ar, then compared against the ones the
+      # machine's tools built. `make test` runs this too and `selfboot`
+      # depends on it, so this step is here to name the phase: when it
+      # breaks, the log says which half broke
+      - name: build it with our own tools
+        run: make selfhost
+
+      # and the same test on a kernel built by this project's own make,
+      # assembler and linker rather than by the machine's. `make test`
+      # already proves the two kernels are the same bytes; this proves
+      # the one our tools wrote is a machine that runs
+      - name: boot what our own tools built
+        run: make selfboot
+
+      - name: keep the boot image and the serial log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: velvetos-boot
+          path: |
+            velvetos.img
+            bin/*-boottest.log
+          if-no-files-found: warn

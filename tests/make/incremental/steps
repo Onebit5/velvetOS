@@ -1,0 +1,32 @@
+write main.c
+write util.c
+write common.h
+run
+# nothing changed: nothing should happen
+run
+# one source: one recompile and one relink, and *not* the other source
+touch main.c
+run
+run
+# -n has to say all of it and do none of it, so the run after it still
+# has the work to do
+touch util.c
+run -n
+run
+run
+# the header both of them include: everything
+touch common.h
+run
+# -s does the same work without the running commentary
+touch main.c
+run -s
+run
+# an output deleted behind make's back
+rm util.o
+run
+run
+# and the case that has no other way of turning up: everything stamped
+# to the same instant. "as old as" is not "older than", and make counts
+# it as up to date
+touch common.h main.c util.c main.o util.o app
+run

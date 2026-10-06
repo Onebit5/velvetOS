@@ -1,0 +1,15 @@
+# both include files present, nothing built yet: every rule of the
+# double-colon target runs, because the target does not exist
+run
+# nothing changed
+run
+# one of the two prerequisites: one recipe and not the other, which is
+# the case a single-colon rule cannot express at all
+touch alpha.txt
+run
+touch beta.txt
+run
+# and the forgiving include with nothing to include. it says nothing,
+# and the variable it would have set is empty
+rm generated.mk
+run

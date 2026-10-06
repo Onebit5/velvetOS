@@ -1,0 +1,13 @@
+write seed
+run
+run
+run extra
+run long
+run pair.a pair.b
+run both
+# a file that happens to be named the same as a phony target. without
+# .PHONY this is where a build stops working, and the day it happens
+# the file is usually called `test`
+write all
+run all
+run

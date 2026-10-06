@@ -1,0 +1,11 @@
+# build junk
+bin/
+obj/
+iso_root/
+*.iso
+
+# the disk image is generated, and is meant to be written to
+disk.img
+velvetos-boot.img
+*.img
+base/ramdisk/bin/
