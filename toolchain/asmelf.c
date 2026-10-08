@@ -135,9 +135,25 @@ bool asmelf_write(const struct assembler *a, uint8_t *out, size_t max,
     syms[nsyms++] = sec;
     size_t text_sym = 1;
 
-    sec.shndx = 6;      /* .rodata */
-    syms[nsyms++] = sec;
-    size_t rodata_sym = 2;
+    /*
+     * .rodata only when the file has some. nasm writes no section a
+     * source never asked for, and an empty one is not nothing to a
+     * linker: it is padded to like any other, so it moves whatever is
+     * linked after it on exactly the disks where the bytes before it
+     * end on an odd boundary
+     */
+    bool has_rodata = a->len[ASM_RODATA] > 0;
+    for (size_t i = 0; i < a->labels; i++) {
+        if (a->label[i].defined && a->label[i].section == ASM_RODATA) {
+            has_rodata = true;
+        }
+    }
+    size_t rodata_sym = 0;
+    if (has_rodata) {
+        sec.shndx = 6;  /* .rodata */
+        rodata_sym = nsyms;
+        syms[nsyms++] = sec;
+    }
 
     /* every label defined here, and every name that is not. */
     size_t sym_index[ASM_MAX_LABELS];
@@ -273,7 +289,7 @@ bool asmelf_write(const struct assembler *a, uint8_t *out, size_t max,
     at = (at + 7) & ~(size_t)7;
     size_t rodata_off = at; at += a->len[ASM_RODATA];
     at = (at + 7) & ~(size_t)7;
-    size_t sections = nrelas_ro > 0 ? 8 : 7;
+    size_t sections = !has_rodata ? 6 : nrelas_ro > 0 ? 8 : 7;
     size_t shdr_off = at;   at += sections * sizeof(struct shdr64);
 
     if (at > max) {
@@ -336,11 +352,21 @@ bool asmelf_write(const struct assembler *a, uint8_t *out, size_t max,
     sh[5].name = n_shstr;  sh[5].type = SHT_STRTAB;
     sh[5].offset = shstr_off; sh[5].size = shstr.len; sh[5].align = 1;
 
-    /* the read-only data, which for this kernel is a table of 256 addresses. */
-    sh[6].name = n_rodata; sh[6].type = SHT_PROGBITS;
-    sh[6].flags = SHF_ALLOC;
-    sh[6].offset = rodata_off; sh[6].size = a->len[ASM_RODATA];
-    sh[6].align = 8;
+    /*
+     * the read-only data, which for this kernel is a table of 256
+     * addresses. four, because four is what nasm gives `section .rodata`,
+     * and the linker pads every object's .rodata to what it asks for. at
+     * eight the table landed four bytes later than nasm's whenever the
+     * .rodata linked before it ended on a four, which depends on the
+     * order the filesystem lists a directory in, so the self-hosted
+     * kernel matched on one disk and not on another
+     */
+    if (has_rodata) {
+        sh[6].name = n_rodata; sh[6].type = SHT_PROGBITS;
+        sh[6].flags = SHF_ALLOC;
+        sh[6].offset = rodata_off; sh[6].size = a->len[ASM_RODATA];
+        sh[6].align = 4;
+    }
 
     /*
      * and .rodata's own relocations, when it has any, a table of

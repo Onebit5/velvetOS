@@ -111,6 +111,30 @@ def globals_of(path):
     return sorted(out)
 
 
+def placement(path):
+    """how each section that is loaded must be aligned, by name.
+
+    the bytes, the relocations and the symbols can all agree and the
+    kernel still come out different, because an object also tells the
+    linker what to pad its sections to. .rodata said eight here and four
+    from nasm, which moved nothing until the .rodata linked before it
+    ended on a four, so the self-hosted kernel differed on one disk and
+    not on another. only loaded sections are compared: nasm writes a
+    .note.GNU-stack this does not, and it decides nothing about where
+    anything lands."""
+    r = subprocess.run(["readelf", "-SW", path], capture_output=True, text=True)
+    out = {}
+    for line in r.stdout.splitlines():
+        if "] " not in line or not line.strip().startswith("["):
+            continue
+        f = line.split("]", 1)[1].split()
+        # name, type, address, offset, size, entsize, flags, link, info,
+        # align, and a section with no flags has one field fewer
+        if len(f) == 10 and "A" in f[6]:
+            out[f[0]] = int(f[9])
+    return out
+
+
 def show(data, at):
     lo = max(0, at - 4)
     hi = min(len(data), at + 8)
@@ -139,9 +163,10 @@ def main():
                 continue
             ra, rb, ga, gb = (relocations(a), relocations(b),
                               globals_of(a), globals_of(b))
+            pa, pb = placement(a), placement(b)
             os.unlink(a)
             os.unlink(b)
-            if ra != rb or ga != gb:
+            if ra != rb or ga != gb or pa != pb:
                 print("  %-28s the object differs" % path)
                 for section in sorted(set(ra) | set(rb)):
                     if ra.get(section) != rb.get(section):
@@ -150,6 +175,9 @@ def main():
                 if ga != gb:
                     print("      globals       nasm %s" % (ga,))
                     print("      %-14s ours %s" % ("", gb,))
+                if pa != pb:
+                    print("      alignment     nasm %s" % (pa,))
+                    print("      %-14s ours %s" % ("", pb,))
                 bad += 1
                 continue
             print("  %-28s ok      objects only, %d relocations"
@@ -173,6 +201,7 @@ def main():
                 continue
             ra, rb = relocations(a), relocations(b)
             ga, gb = globals_of(a), globals_of(b)
+            pa, pb = placement(a), placement(b)
             os.unlink(a)
             os.unlink(b)
             if ra != rb:
@@ -187,6 +216,12 @@ def main():
                 print("  %-28s bytes agree, the symbol table does not" % path)
                 print("      nasm %s" % (ga,))
                 print("      ours %s" % (gb,))
+                bad += 1
+                continue
+            if pa != pb:
+                print("  %-28s bytes agree, the alignment does not" % path)
+                print("      nasm %s" % (pa,))
+                print("      ours %s" % (pb,))
                 bad += 1
                 continue
             print("  %-28s ok      %d bytes, %d relocations" %

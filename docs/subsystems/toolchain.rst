@@ -56,6 +56,14 @@ exported symbol came out ``LOCAL``) and every relocation going into
 rather than index. nasm numbers ``.rodata`` 2 and this numbers it 6, and
 both are right.
 
+and it compares how each loaded section must be aligned, because the
+linker pads to that and nothing in the bytes says so. ``.rodata`` asked for
+eight where nasm asks for four, and was written even when a file had none,
+and either one moved the table of interrupt stubs by four bytes whenever
+the ``.rodata`` linked before it ended on a four. which object that is
+depends on the order a directory is listed in, so the self-hosted kernel
+was identical on one filesystem and not on another.
+
 the linker
 ----------
 

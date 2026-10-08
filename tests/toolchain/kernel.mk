@@ -70,7 +70,7 @@ all: $(BIN)/velvetos.img
 # the linking and the C gensyms reading the symbol table our linker
 # wrote. that second part is the one worth watching: a kernel linked
 # without a symbol table boots perfectly and cannot say where it died
-$(BIN)/velvet: $(OBJ) kernel/linker.ld $(GENSYMS)
+$(BIN)/velvet: $(OBJ) kernel/linker.ld $(GENSYMS) $(LINK)
 	@mkdir -p $(BIN) $(OUT)
 	@echo '  GENSYMS stub'
 	@$(GENSYMS) --stub > $(OUT)/ksyms.c
@@ -101,15 +101,18 @@ $(OUT)/%.c.o: kernel/%.c
 	@mkdir -p $(@D)
 	@$(CC) $(CFLAGS) -c $< -o $@
 
-# ours, where the ordinary build says nasm
-$(OUT)/%.asm.o: kernel/%.asm
+# ours, where the ordinary build says nasm. the assembler is a
+# prerequisite like the source is: the tools are what is under test
+# here, so a fixed assembler that left last build's objects standing
+# would be compared against nasm without ever having been run
+$(OUT)/%.asm.o: kernel/%.asm $(ASM)
 	@mkdir -p $(@D)
 	@$(ASM) -o $@ $<
 
 # and the trampoline, which is not linked at all: it runs in real mode
 # at a fixed low address, so it is assembled flat and carried into the
 # kernel as bytes
-$(OUT)/arch/x86_64/trampoline.bin: kernel/arch/x86_64/trampoline.asm
+$(OUT)/arch/x86_64/trampoline.bin: kernel/arch/x86_64/trampoline.asm $(ASM)
 	@mkdir -p $(@D)
 	@$(ASM) $< > $@
 
