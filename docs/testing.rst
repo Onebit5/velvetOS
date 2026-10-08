@@ -1,10 +1,16 @@
 testing
 =======
 
-most of this kernel can be tested without booting anything, and that is a
+most of this system can be tested without booting anything, and that is a
 design decision rather than a happy accident. the parts that *think* are
 kept separate from the parts that *touch hardware*, so the suites compile
-the real kernel sources as ordinary linux programs and poke at them.
+the real sources as ordinary linux programs and poke at them.
+
+the kernel's suites are the kernel's, in ``kernel/tests/``, run by its own
+``make test`` and by ``make kernel-test`` here, and described in
+``kernel/docs/testing.rst``. what is here checks what this tree wrote: the
+library, the programs' shared code, git, and the toolchain, and then the
+whole machine, booted.
 
 every behaviour change arrives with the suite that proves it. see `tests
 come with the change <contributing.rst>`_ in the contributing guide.
@@ -12,25 +18,28 @@ come with the change <contributing.rst>`_ in the contributing guide.
 how it works
 ------------
 
-a function that would otherwise reach for the machine is written to take
-what it needs as an argument:
+a function that would otherwise reach for the machine reaches through one
+narrow seam instead, and the suite replaces the seam and nothing else:
 
-- ``pmm_init_from_map()`` takes a memory map instead of asking the loader
-  for one, so a test can fabricate one over a ``malloc``'d arena.
-- ``keyboard_feed()`` takes a scancode instead of reading port 0x60.
-- ``serial_feed()`` takes a byte.
-- ``run_line()`` takes a string.
+- the libc's allocator gets its memory from ``libc_get_pages()``, so the
+  suite includes the real ``stdlib.c`` and hands it pages of the host's,
+  and resets its free list between sections.
+- git's object store reaches the world through ``userland/gitio.h``, five
+  functions: ``gitio_velvet.c`` puts this machine's syscalls under them and
+  ``gitio_host.c`` the host's stdio, so the store a program runs is the
+  store the suite and ``gitcheck`` drive.
+- the text buffer and the diff are pure: a structure and the operations on
+  it, with the drawing and the reading left to the program that uses them.
 
-host builds define ``VELVETOS_HOSTED``, which turns ``irq_save()`` /
-``irq_restore()`` into no-ops. userspace is not allowed to ``cli`` and has
-nothing to lock out anyway. that is what lets the real spinlocks,
-allocators and scheduler run in a test process. see `testability
-<coding-style.rst>`_ for the rule that keeps this seam alive.
+the kernel does the same thing at a larger scale, and its ``testing.rst``
+says how. see `testability <coding-style.rst>`_ for the rule that keeps a
+seam alive.
 
 ``make test``
 -------------
 
-the entry point, and the first thing CI runs. no qemu, about a second:
+the entry point, and the first thing CI runs. no qemu, a minute or two,
+most of it the self-hosted kernel:
 
 .. code-block:: sh
 
@@ -41,44 +50,17 @@ it builds and runs three kinds of thing.
 the suites
 ~~~~~~~~~~
 
-the suites in ``tests/test_*.c``, linked against the real kernel sources and
-run as host programs. each prints ``ok`` or ``FAILED`` and a failure prints
-the failing case. all of them:
+the suites in ``tests/test_*.c``, linked against the real sources and run
+as host programs. each prints ``ok`` or ``FAILED`` and a failure prints the
+failing case. all of them:
 
-``kprintf``, ``libc``, ``args``, ``ansi``, ``termios``, ``textbuf``, ``difflib``, ``path``
-   formatting, the userland library, argument parsing, terminal escape
-   sequences, and the path and diff helpers.
+``libc``, ``args``, ``textbuf``, ``difflib``
+   the userland library, argument parsing, the editor's text buffer, and the
+   diff every program that compares two files shares.
 
-``mm``, ``buddy``, ``slab``, ``vmm``, ``addrspace``, ``pressure``
-   the allocators and the page tables, including draining ram dry, every
-   frame handed out exactly once, and a leak-free teardown.
-
-``locks``, ``switch``, ``process``, ``syscall``, ``signal``, ``init``
-   eight real threads through the real allocators at once; a real context
-   switch in userspace; pids, zombies, file descriptors and a kill that
-   races; the syscall layer refusing every bad pointer; signals; and what
-   init decides about a service that keeps dying.
-
-``gdt``, ``rtc``, ``acpi``, ``pci``, ``console``, ``keyboard``, ``serial``, ``mouse``, ``ksyms``, ``epoch``
-   the x86 structures and the drivers, fed fabricated input. a machine's
-   worth of firmware tables and every malformed one refused.
-
-``ramdisk``, ``elf``, ``vfs``, ``fat32``, ``bcache``, ``ext4``, ``part``, ``mkfs``, ``source``, ``pipe``, ``crash``, ``resize``
-   the filesystems. a real image with long names and subdirectories, the
-   block cache's eviction and write-back, inodes and bitmaps and the
-   indirect block map, mbr and gpt, and the archive on raw sectors. the
-   ``crash`` and ``resize`` suites stop the machine at every write one of
-   those operations takes and demand a filesystem at each one.
-
-``net``, ``dhcp``, ``tcp``, ``dns``, ``http``
-   checksums, headers and sockets, checked against packets captured from the
-   rfcs rather than invented here.
-
-``shell``, ``auth``, ``tty``, ``install``, ``philemon``, ``git``, ``hash``, ``inflate``
-   the shell's parsing and dispatch, the account file and every malformed
-   line refused, the terminal discipline, the installer's ordering, the
-   loader's elf parsing, the git object store, and the three checksums and
-   deflate.
+``git``
+   the git object store, with no arguments; with some, the tool
+   ``gitcheck`` builds a whole repository with.
 
 the foreign-implementation checks
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -92,7 +74,8 @@ implementation exists, the project tests against that instead:
 
 ``linkcheck`` / ``kernelcheck``
    link with this project's linker and with ``ld`` and compare every byte
-   at every address.
+   at every address. ``kernelcheck`` does it with the kernel's own objects,
+   the ones the kernel's build lists in ``obj/kernel/x86_64/kernel.objects``.
 
 ``makecheck``
    run the same makefiles with this project's make and with GNU make.
@@ -104,19 +87,11 @@ implementation exists, the project tests against that instead:
    write a repository with this project's git and read it with real git.
    ``fsck --strict`` and all.
 
-``zlibcheck`` / ``hashcheck``
-   deflate and inflate against python's ``zlib``; sha-1, crc32 and adler32
-   against python, ``zlib`` and git itself.
-
-``fsckcheck`` / ``fsck`` / ``mkfsck`` / ``growcheck``
-   break a filesystem on purpose and demand this project's fsck finds it;
-   then read the repaired image back with ``tools/readext4.py``, which
-   shares no line with the checker.
-
 ``srccheck``
    read the source tree back out of the boot image and hold it against the
-   working tree, and require the archive's sha-1 to appear inside the kernel
-   shipped beside it.
+   working tree, the kernel's files included, and require the archive's
+   sha-1 to appear inside the kernel shipped beside it. the checker is the
+   kernel's, ``kernel/tools/srccheck.py``, run over this tree's image.
 
 the static checks
 ~~~~~~~~~~~~~~~~~
@@ -125,26 +100,16 @@ the static checks
    the style guide, checked mechanically: the file header, the comment shape,
    the function brace, dashes and first person in prose, tabs and the
    ``//`` rule. ``make lint`` covers the tree and
-   ``make lint FILES='userland/ls.c'`` covers the files named. naming prefixes are
-   warnings until the tree is converted. it runs before anything is built, on
-   its own and in ci, so it is covered here rather than under the suites.
+   ``make lint FILES='userland/ls.c'`` covers the files named. the kernel is
+   not in the tree as far as git is concerned, it is one submodule entry,
+   and its own ``make lint`` covers it. naming prefixes are warnings until
+   the tree is converted. it runs before anything is built, on its own and
+   in ci, so it is covered here rather than under the suites.
 
-``checkfmt``
-   every ``kprintf``/``panic`` format string against what ``lib/kprintf.c``
-   actually implements. this exists because of a bug that cost an
-   afternoon: gcc checks a format string against *real* printf, so it
-   accepted a ``%-7s`` this formatter never implemented, which printed
-   itself literally and read every later argument from the wrong slot.
-
-``checkarch``
-   no inline assembly and no x86 headers outside ``arch/``.
-
-``portable-check``
-   the portable half of the kernel compiled against ``arch/none/``.
-
-``toolcheck`` / ``toolchain``
-   the C build tools against the python ones they replace, and the
-   project's own toolchain standing on its own.
+``toolchain``
+   the project's own toolchain standing on its own: our make, our assembler
+   and our linker build a program, and it is compared against nasm's and
+   ld's.
 
 ``selfhost``
    the kernel built by this project's own make, assembler and linker,
@@ -165,6 +130,12 @@ possible because com1 feeds the same input queue the keyboard does. the
 serial log is left in ``bin/*-boottest.log``, and CI uploads it, with the
 boot image, when a run fails.
 
+this is the whole machine, and the only check that is. the kernel's own boot
+test boots a medium with no programs on it; this one runs them, in ring 3,
+on the pinned kernel: programs that exit with a code, fork, spawn and wait,
+read input, and are stopped by ctrl+c, the guest refused a file, and the
+source on the medium read with ``cat``.
+
 ``selfboot``
 ------------
 
@@ -180,8 +151,8 @@ each suite is an ordinary binary in ``bin/tests/``:
 
 .. code-block:: sh
 
-   make bin/tests/tcp
-   ./bin/tests/tcp
+   make bin/tests/libc
+   ./bin/tests/libc
 
 ``make test`` is still the thing to run before pushing, because it also
 runs the static checks and the foreign-implementation comparisons, and a
@@ -190,7 +161,8 @@ suite passing on its own does not mean the tree is clean.
 what CI does with all of this
 -----------------------------
 
-the workflow runs, in order: ``make test``, ``make``, ``make boottest``,
+the workflow checks out the kernel at the pinned commit, and runs, in
+order: ``make test``, ``make``, ``make boottest``, ``make selfhost``,
 ``make selfboot``. see `ci is the gate <contributing.rst>`_ for what
 happens when one of them fails, which is: the pull request does not merge.
 
@@ -205,92 +177,9 @@ and its sentence is what to try.
 
 .. _contributing: contributing.rst
 
-the analysers, and what they are worth here
--------------------------------------------
+the analysers, the fuzzer and ubsan
+-----------------------------------
 
-``sparse`` runs over the kernel and is clean apart from four kinds of
-warning, every one of which is deliberate:
-
-- a memset of a whole cache or scroll buffer, which is what it is for
-- casts that truncate a constant, in the big-endian helpers, where the
-  truncation *is* the byte swap
-
-the one real report is a cast of a compound literal to its own type in
-``drivers/tty.c``, which is legal and pointless, and is tagged as such.
-
-``smatch`` is installed and reports nothing at all, including on a file
-written to dereference a null pointer on purpose, so it is not evidence of
-anything and should not be listed as a check until somebody works out why.
-
-``ubsan`` works in trap mode, which needs no runtime:
-
-    make HOSTFLAGS="-std=gnu11 -Wall -Wextra -Wno-stringop-truncation \
-        -Wno-stringop-overread -g -DVELVETOS_HOSTED -Ikernel -Iboot \
-        -DVELVETOS_ARCH_X86_64 -fsanitize=undefined \
-        -fsanitize-trap=undefined -fno-sanitize-recover=all" <the suites>
-
-two traps for the unwary: make will not rebuild binaries that already exist,
-so they have to be removed first or the flags never reach the compiler, and
-the suite list has to be taken from ``TEST_BINS`` without the trailing colon
-that the continuation puts on the last one. a ub built with trap mode
-contains ``ud2`` instructions, and that is the way to tell it worked:
-
-    objdump -d bin/tests/mm | grep -c ud2
-
-the fuzzer
-----------
-
-``make fuzz`` builds ``tools/fuzz_parsers.c`` with ubsan in trap mode and
-feeds random bytes, and random mutations of a valid seed, to the four parsers
-that take input from the wire or from a disk:
-
-- ``dns_parse_response``, the only place here that believes a stranger
-- ``http_feed``, fed in pieces of one to eight bytes, since a response
-  arrives as whatever tcp felt like delivering
-- ``tcp_parse``, including lengths shorter than the header it is reading
-- ``ustar_octal``, with fields of the wrong length and a size that never ends
-
-two hundred thousand rounds of each takes about four seconds. The seed is
-fixed, so a run that finds something can be repeated exactly:
-
-    bin/tests/fuzz_parsers 0x<seed>
-
-As it stands all four survive it: no crash, no hang and no trap.
-
-It checks its seeds before it starts and refuses to run if one is refused,
-which is not decoration: the first version of it wrote a tcp segment out by
-hand with zeros in the checksum, so tcp_parse refused every input it was
-ever given and the clean result was about nothing. A fuzzer that reports a
-clean run over input the parser never reads is worse than no fuzzer, because
-it is believed.
-
-ubsan on the kernel itself
---------------------------
-
-The suites are instrumented in the host build, which covers the code the
-suites reach. The kernel can be instrumented too, and that is the only way
-anything in ring 0, on the trap path, in a driver or on a second core is
-checked at all. The flags go in through ``CFLAGS``, which has to be given in
-full, because a value on the command line replaces the makefile's rather than
-adding to it:
-
-    make CFLAGS="<the flags the makefile uses> -fsanitize=undefined \
-        -fsanitize-trap=undefined -fno-sanitize-recover=all"
-
-Trap mode is what makes this possible in a freestanding kernel: every check
-becomes a ``ud2`` instead of a call into a runtime that does not exist here.
-So the way to tell the build worked is the same as for the suites:
-
-    objdump -d bin/velvetos | grep -c ud2
-
-As it stands that is 13275 checks, and ``make boottest`` passes 95 of 95 with
-them armed, on one cpu and on two, which is the boot, the memory map, paging,
-both cores, the trap path, the disk and keyboard drivers, the allocators, the
-filesystems, syscalls, ring 3, signals and the shell.
-
-What this does not cover, and it is worth knowing why: a read past the end of
-a buffer that sits inside a larger allocation is not undefined behaviour as
-the language sees it, so ubsan cannot see the dirent over-read that
-``fs/ext4.c`` records as a fixme. That class needs asan, which has no usable
-runtime on this machine, or a fuzzer aimed at the function, which is what
-``make fuzz`` is for.
+``sparse``, the parser fuzzer and ubsan in trap mode are all pointed at the
+kernel, and moved with it: ``kernel/docs/testing.rst`` has what each is
+worth there and how to run it.

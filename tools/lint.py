@@ -257,13 +257,16 @@ def check_file(path, strict):
 
 
 def git_files():
-    """the C sources, and the python and shell tools we also hold to"""
+    """the C sources, and the python and shell tools held to the same rules.
+
+    every C file git tracks is this project's own. a submodule is one
+    entry naming a commit rather than the files in it, so kernel/ is not
+    in this list: the kernel is held to its own copy of the guide, by its
+    own lint, in its own repository."""
     out = subprocess.run(['git', 'ls-files'], capture_output=True, text=True)
     keep = []
     for f in out.stdout.split():
-        own_source = f.startswith(('kernel/', 'boot/', 'userland/',
-                                   'toolchain/', 'tests/'))
-        if own_source and f.endswith(C_EXT):
+        if f.endswith(C_EXT):
             keep.append(f)
         elif (f.startswith('tools/')
               and f.endswith(('.py', '.sh', '.c', '.h'))):

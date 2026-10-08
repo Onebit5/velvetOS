@@ -3,114 +3,89 @@ layout
 
 the tree, and what each part of it is for.
 
-the top level says what the project is: the machine in ``kernel/`` and
-``boot/``, what runs on it in ``userland/``, what builds it in ``toolchain/``
-and ``tools/``, and what goes on the medium in ``base/``.
+the top level says what the system is: the kernel in ``kernel/``, what runs
+on it in ``userland/``, what builds it in ``toolchain/`` and ``tools/``, and
+what goes on the medium in ``base/``.
 
 at a glance
 -----------
 
 ::
 
-    kernel/            the kernel
-      arch/            the boundary: irq, cpu, mmu, context, machine
-        x86_64/        gdt, idt, isr stubs, irq dispatch, pic, apic, port io
-        none/          an architecture that does nothing, for portable-check
-      drivers/         serial, console, tty, ps/2 keyboard and mouse, pit,
-                       rtc, pci, ahci, e1000, partitions, the font
-      net/             ethernet, arp, ip, icmp, udp, tcp, sockets, dhcp,
-                       dns, http
-      fs/              vfs, disk, bcache, ext4, fat32, jbd2, path, pipe,
-                       ramdisk, source, mkfs, fsck, install
-      lib/             kprintf, panic, string, hash, deflate/inflate,
-                       epoch, ksyms, backtrace
-      mm/              pmm, buddy, slab, kmalloc, vmm, addrspace, pressure
-      sched/           threads, run queue, context switch, processes,
-                       signals, auth, init, locks
-      shell/           the velvet room terminal
-      main.c           kmain
-      boot.c           the loader handoff
-      linker.ld        the higher-half layout and the section symbols
-    boot/              philemon, the bootloader
+    kernel/            velvet, a git submodule: the kernel, philemon,
+                       its suites, and the tools that write images and
+                       disks. its own tree, with its own docs/layout.rst
     userland/          what runs on the machine: the libc and the programs
       libc/            start, stdio, stdlib, format, string
     toolchain/         what builds the machine: the assembler, the linker,
                        make and ar
-    base/ramdisk/      the files packed into the boot tar (input)
+    base/ramdisk/      the files packed into the boot tar (input), and the
+                       programs, once built, in base/ramdisk/bin/
     base/diskroot/     the files on the data disk in `make run` (input)
-    tests/             the host suites, run by `make test`
-    tools/             the checkers and image builders: the python ones, and
-                       the C ones that replace them
+    tests/             the host suites, run by `make test`, and the
+                       fixtures the toolchain is checked against
+    tools/             the toolchain's checkers and the boot test
     docs/              this
     GNUmakefile        the build
+    .gitmodules        where kernel/ comes from
     ROADMAP.md         where it is going
     CHANGELOG.md       where it has been
 
-the subsystems
---------------
-
-each directory under ``kernel/`` is a subsystem with a page of its own:
+the parts
+---------
 
 .. list-table::
    :header-rows: 1
 
-   * - subsystem
+   * - part
      - directory
      - page
-   * - the architecture boundary
-     - ``arch/``
-     - `subsystems/arch.rst <subsystems/arch.rst>`_
-   * - memory
-     - ``mm/``
-     - `subsystems/mm.rst <subsystems/mm.rst>`_
-   * - scheduling and processes
-     - ``sched/``
-     - `subsystems/sched.rst <subsystems/sched.rst>`_
-   * - filesystems
-     - ``fs/``
-     - `subsystems/fs.rst <subsystems/fs.rst>`_
-   * - drivers
-     - ``drivers/``
-     - `subsystems/drivers.rst <subsystems/drivers.rst>`_
-   * - networking
-     - ``net/``
-     - `subsystems/net.rst <subsystems/net.rst>`_
-   * - the library
-     - ``lib/``
-     - `subsystems/lib.rst <subsystems/lib.rst>`_
-   * - the shell
-     - ``shell/``
-     - `subsystems/shell.rst <subsystems/shell.rst>`_
-   * - the bootloader
-     - ``boot/``
-     - `subsystems/boot.rst <subsystems/boot.rst>`_
    * - the userland
      - ``userland/``
      - `subsystems/userland.rst <subsystems/userland.rst>`_
    * - the toolchain
      - ``toolchain/``
      - `subsystems/toolchain.rst <subsystems/toolchain.rst>`_
-   * - the checkers and image builders
+   * - the checkers and the boot test
      - ``tools/``
      - `subsystems/tools.rst <subsystems/tools.rst>`_
+   * - the kernel
+     - ``kernel/``
+     - ``kernel/docs/layout.rst``, and a page per subsystem under
+       ``kernel/docs/subsystems/``
 
-the one rule that crosses all of them
--------------------------------------
+the line between this tree and the kernel
+-----------------------------------------
 
-**machine-specific code lives under ``arch/<machine>/`` and nowhere else.**
-everything above that line is portable, and ``make portable-check`` and
-``tools/checkarch.py`` fail the build when something crosses it. the full
-account is in `the architecture boundary <subsystems/arch.rst>`_ and in
-`code style <coding-style.rst>`_.
+**this tree uses the kernel's files and the kernel never uses this tree's.**
+the libc compiles ``kernel/lib/string.c``, ``hash.c``, ``deflate.c``,
+``inflate.c`` and ``epoch.c`` rather than keeping copies; git's object store
+includes the kernel's headers for the same reason; the disk image is written
+by ``kernel/tools/mkboot.py`` and the disks by the kernel's ``mkext4``; and
+the self-hosted build reads ``kernel/sources.mk`` for what the kernel is made
+of. every one of those reaches into the pinned commit, so moving the pin
+moves them all together, and nothing in ``kernel/`` names a path out here.
+that direction is what lets the kernel be a project of its own.
+
+the one thing written down on both sides is the syscall table:
+``userland/syscall.h`` here and ``kernel/arch/x86_64/syscall.h`` there,
+equal by care rather than by construction. see `the userland
+<subsystems/userland.rst>`_.
 
 inputs and outputs
 ------------------
 
-``base/ramdisk/`` and ``base/diskroot/`` are *inputs*: the first is packed into the
-boot tar the loader hands the kernel, the second is copied onto the data
-disk by ``make run``. everything under ``bin/`` and ``obj/`` is generated
-and comes back out with ``make clean``. the boot image, ``velvetos.img``, is
-written by ``tools/mkboot.py`` and carries philemon, the kernel, the ramdisk
-and the project's own source tree. `building`_ is the details.
+``base/ramdisk/`` and ``base/diskroot/`` are *inputs*: the first is packed into
+the boot tar the loader hands the kernel, the second is copied onto the data
+disk by ``make run``. ``base/ramdisk/etc/os-release`` is where the system's
+own version is written; the kernel's is in ``kernel/version.h``.
+
+everything under ``bin/`` and ``obj/`` is generated and comes back out with
+``make clean``, the kernel's outputs included: the kernel is built into
+``bin/kernel/`` and ``obj/kernel/``, never inside ``kernel/``, so the
+submodule's checkout stays exactly what was pinned. the boot image,
+``velvetos.img``, is written by ``kernel/tools/mkboot.py`` and carries
+philemon, the kernel, the ramdisk and the system's own source tree, the
+kernel's included. `building`_ is the details.
 
 .. _building: building.rst

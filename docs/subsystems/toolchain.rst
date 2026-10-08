@@ -2,10 +2,10 @@ the toolchain
 =============
 
 velvetOS builds its own kernel with its own tools. the assembler, the linker,
-``make``, ``ar`` and ``mkext4`` live in ``toolchain/``, are built as host binaries
-by ``make toolchain``, and are run by the kernel build. gcc is the only
-program left in the chain that is not this project's, and 0.4.x is about
-replacing that too.
+``make`` and ``ar`` live in ``toolchain/``, are built as host binaries by
+``make toolchain``, and build the kernel in ``kernel/``, velvet, which
+this tree carries as a submodule. gcc is the only program left in the chain
+that is not this project's.
 
 the one thing that makes any of it checkable is comparing against the real
 thing. an assembler cannot be eyeballed, a linker cannot be reasoned about
@@ -183,25 +183,30 @@ aligned where every other member is followed by a pad byte outside its size,
 and the name table leaves date, owner and mode blank rather than writing
 zeros.
 
-mkext4
-------
+the C build tools
+-----------------
 
-``tools/mkext4.c`` is the sixth tool, and not a rewrite so much as a driver:
-``mkfs.c`` already formats ext2 and ``ext4.c`` already writes files, so what
-was missing was a way to point them at a host file and a host directory. it
-replaced 460 lines of python that laid out ext2 a second time.
+``mkext4``, ``mkfat``, ``mkboot``, ``gensyms`` and ``bin2c``, the build tools
+that were rewritten from python so a self-hosting machine would not need it,
+are the kernel's: they write the kernel's images and its filesystems through
+the kernel's own drivers, so they went to velvet with them.
+``make kernel`` builds them out of ``kernel/`` into ``bin/kernel/tests/``,
+where the disk image and the self-hosted build pick them up, and
+velvet's ``docs/subsystems/tools.rst`` describes each.
 
 hashes and deflate
 ------------------
 
-``kernel/lib/hash.c`` and ``lib/deflate.c`` are the kernel's, but they
-are prerequisites for git rather than features of the kernel: a git
+``kernel/lib/hash.c`` and ``kernel/lib/deflate.c`` are the kernel's, but
+they are prerequisites for git rather than features of the kernel: a git
 repository is addressed by the sha-1 of what is in it, and every object on
-disk is a zlib stream. see `the library <lib.rst>`_ for what each sum is
-for, and ``tools/hashcheck.py`` / ``tools/zlibcheck.py`` for how they are
-checked (against python, zlib and git itself, including the case that cannot
-fail. a single buffer hashed in one go, which is why every input is fed
-again in chunks of 1, 7, 63, 64 and 65 bytes).
+disk is a zlib stream. ``libc.a`` compiles both out of ``kernel/`` rather than
+keeping copies, so git uses the same lines the kernel does, checked once.
+velvet's ``docs/subsystems/lib.rst`` says what each sum is for, and its
+``hashcheck.py`` and ``zlibcheck.py`` how they are checked (against python,
+zlib and git itself, including the case that cannot fail. a single buffer
+hashed in one go, which is why every input is fed again in chunks of 1, 7,
+63, 64 and 65 bytes).
 
 git
 ---
@@ -243,9 +248,13 @@ the self-hosted kernel
 
 ``make selfhost`` builds the kernel with this project's make, assembler and
 linker. ``tests/toolchain/kernel.mk`` is a real makefile rather than a
-demonstration; it finds its sources with ``$(shell find)``, reads the
+demonstration; it reads what the kernel is made of out of
+``kernel/sources.mk`` with ``include``, finds the files with ``$(shell
+find)`` in the same order the kernel's own makefile does, reads the
 dependency files gcc writes with ``-include``, and runs the same two-pass
-symbol-table dance the ordinary build does.
+symbol-table dance the ordinary build does. the order is not tidiness: the
+order objects are linked in decides where every function lands, and the
+comparison below is byte for byte.
 
 ``tools/selfcheck.py`` compares the loaded image of both kernels byte by
 byte, and the only differences are the six bytes of ``__TIME__`` that say

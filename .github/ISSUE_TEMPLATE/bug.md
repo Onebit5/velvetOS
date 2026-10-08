@@ -6,7 +6,10 @@ labels: bug
 assignees: ''
 ---
 
-<!-- one bug per issue, please. if you have found two, open two. -->
+<!-- one bug per issue, please. if you have found two, open two.
+
+     a bug in the kernel itself belongs to velvet. if you cannot tell
+     which side it is on, open it here and say so. -->
 
 ## what happens
 
@@ -24,15 +27,15 @@ make run
 
 ## where it lives
 
-<!-- the subsystem, as best you can tell: arch, boot, mm, sched, fs, drivers,
-     net, lib, shell, user, toolchain, tools. a guess is fine and saves a
-     round trip. -->
+<!-- the part, as best you can tell: user, libc, toolchain, git, tools, or
+     the kernel. a guess is fine and saves a round trip. -->
 
 ## the machine
 
-- version: the banner prints `velvetOS v...`, and the number lives in
-  `kernel/version.h`
-- commit: `git rev-parse --short HEAD`
+- version: velvetOS's is in `base/ramdisk/etc/os-release`, and the kernel's
+  is the banner's `velvet v...`
+- commit: `git rev-parse --short HEAD`, and the kernel's from
+  `git submodule status`
 - host: `uname -a`, and the versions of gcc and nasm
 - built with the machine's tools (`make`), or with the project's own
   (`make selfboot`)?

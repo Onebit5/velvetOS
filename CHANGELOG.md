@@ -2,6 +2,15 @@
 
 every version of velvetOS, newest first.
 
+until 0.4.0 the kernel was part of this tree, so every entry below is the
+history of both: the kernel and the programs on it, one machine that booted
+per version. from 0.4.0 the kernel is velvet, a repository of its own
+carried here as `kernel/`, and its versions are in its own changelog. the
+entries here from then on are the system's, and each says which kernel it
+ships. none of the entries below were split when the kernel left. they are
+a record of what happened, written when it happened, and they stay as they
+were written.
+
 this lived at the bottom of README.md until 0.3.0, by which point it was
 fifty-four entries and rather more than half the file -- a reader who
 wanted to know what the machine *is* had to scroll past everything it had

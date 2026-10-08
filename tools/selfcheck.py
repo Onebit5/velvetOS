@@ -60,9 +60,9 @@ def string_around(image, at):
 
 def main():
     ours = sys.argv[1] if len(sys.argv) > 1 else \
-        os.path.join(ROOT, "bin", "toolchain", "velvetos")
+        os.path.join(ROOT, "bin", "toolchain", "velvet")
     theirs = sys.argv[2] if len(sys.argv) > 2 else \
-        os.path.join(ROOT, "bin", "velvetos")
+        os.path.join(ROOT, "bin", "kernel", "velvet")
 
     for path in (ours, theirs):
         if not os.path.exists(path):

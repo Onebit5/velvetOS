@@ -35,8 +35,14 @@ the calls, grouped:
 
 a syscall argument that is a user address is validated before it is
 dereferenced, in one place, in the syscall layer, and no kernel function
-trusts a pointer it did not create. see `error handling
-<../coding-style.rst>`_.
+trusts a pointer it did not create.
+
+the other side of the door is the kernel's, and so is the table: every call,
+what it takes and what it gives back, is in ``kernel/docs/syscalls.rst``.
+the numbers are written down twice, in ``userland/syscall.h`` here and in
+``kernel/arch/x86_64/syscall.h`` there, and nothing but care keeps them
+equal. a new call lands in the kernel first and is usable here once
+``kernel/`` is pinned to a commit that has it.
 
 the libc
 --------
@@ -109,8 +115,8 @@ takes**:
 that declaration is the only description of the program there is. the parser
 reads it, and so does anything that has to explain the program to somebody,
 which is what stops usage text from drifting away from what the code
-actually does. ``help cat`` works by running ``cat --help``; see `the shell
-<shell.rst>`_.
+actually does. ``help cat`` works by running ``cat --help``; the shell is
+the kernel's, and ``kernel/docs/subsystems/shell.rst`` says how.
 
 understood: ``-v``, ``--verbose``, ``-abc`` for three at once, a value as
 the next word or stuck on or after an ``=``, and ``--`` to say everything

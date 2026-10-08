@@ -1,9 +1,14 @@
 #!/bin/sh
-# boot the iso headless and actually use the thing: type commands at the
-# shell over the serial line and check the answers come back.
+# boot the image headless and actually use the thing: type commands at
+# the shell over the serial line and check the answers come back.
 #
 # this is only possible because com1 is wired to the input queue, so the
 # shell cant tell the difference between a keyboard and a pipe.
+#
+# this is the whole system: the kernel, and the programs on the ramdisk
+# running in ring 3 on top of it. the kernel's own boot test, in
+# kernel/tools/, checks what the kernel can show with no programs at all,
+# and this is the half only a system with programs on it can check.
 #
 #   usage: tools/boottest.sh [velvetos.img]
 
@@ -31,14 +36,16 @@ WORKIMG="$(mktemp -t velvetos-boottest-work-XXXXXX.img)"
 EMPTY="$(mktemp -d -t velvetos-boottest-XXXXXX)"
 trap 'rm -rf "$DISK" "$SYSIMG" "$WORKIMG" "$EMPTY"' EXIT
 
-"$HERE/../bin/tests/mkext4" "$SYSIMG" "$HERE/../base/diskroot" 48 >/dev/null
+# the formatter is the kernel's, built by `make kernel` into bin/kernel/
+MKEXT4="$HERE/../bin/kernel/tests/mkext4"
+"$MKEXT4" "$SYSIMG" "$HERE/../base/diskroot" 48 >/dev/null
 echo "somewhere to work that is not the system" > "$EMPTY/readme.txt"
-"$HERE/../bin/tests/mkext4" "$WORKIMG" "$EMPTY" 8 work >/dev/null
+"$MKEXT4" "$WORKIMG" "$EMPTY" 8 work >/dev/null
 # and the room to grow into, which is a partition longer than the
 # filesystem in it rather than anything the filesystem knows about
 dd if=/dev/zero of="$WORKIMG" bs=1M count=0 seek=24 2>/dev/null
-python3 "$HERE/mkdisk.py" "$DISK" mbr "$SYSIMG:linux" "$WORKIMG:linux" \
-        >/dev/null
+python3 "$HERE/../kernel/tools/mkdisk.py" "$DISK" mbr \
+        "$SYSIMG:linux" "$WORKIMG:linux" >/dev/null
 # kept rather than thrown away. a boot test that fails and deletes the
 # only record of why is a boot test you debug by running it again and
 # squinting at a terminal.
@@ -136,7 +143,7 @@ echo "booting $BOOTIMG and driving the shell over serial..."
     printf 'cat /boot/src/kernel/version.h\r'; sleep 3
     printf 'src verify\r'; sleep 20
     printf 'src unpack /work/src\r'; sleep 12
-    printf 'cat /work/src/boot/philemon.h\r'; sleep 3
+    printf 'cat /work/src/kernel/boot/philemon.h\r'; sleep 3
     printf 'sync\r';   sleep 2
 } | timeout 300 qemu-system-x86_64 \
         -M q35 -m 2G -smp "${CPUS:-2}" -boot order=c \
@@ -158,7 +165,7 @@ check() {
 }
 
 # did it boot at all
-check 'kernel banner'      'velvetOS v'
+check 'kernel banner'      'velvet v'
 check 'framebuffer found'  'framebuffer :'   # serial keeps everything
 check 'idt armed'          '256 gates armed'
 check 'acpi parsed'        'acpi       :'
@@ -187,7 +194,9 @@ check 'vmm works'     'pml4 at'
 check 'bt works'      'call trace:'
 check 'symbols work'  'shell_run+'
 check 'date works'    ':'
-check 'history works' 'uptime'
+# numbered, because the typed command is echoed back too: a check for
+# the word alone passes whether or not history printed anything
+check 'history works' '4  uptime'
 check 'ramdisk mounted' 'ramdisk    :'
 check 'ls is a program'  '6 files, 3 directories'
 check 'ls works'         'motd.txt'

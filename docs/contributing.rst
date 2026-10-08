@@ -1,9 +1,9 @@
 contributing
 ============
 
-velvetOS is a 64-bit kernel for x86_64, written in C and booted by a
-bootloader of its own. it is a machine built to be understood rather than
-deployed. contributions are welcome, and they go through the same door as
+velvetOS is a 64-bit system for x86_64: velvet underneath, and the
+libc, the programs and the toolchain that builds it on top. it is a machine
+built to be understood rather than deployed. contributions are welcome, and they go through the same door as
 everything else: an issue, an email, or a pull request on github that
 builds, boots, and passes CI. this page is the door.
 
@@ -11,6 +11,28 @@ read `code style <coding-style.rst>`_ before you write anything. it is short
 and it is not optional, for the same reason the compiler flags are not
 optional: a change that works but does not fit is a change somebody else has
 to fix.
+
+which repository
+----------------
+
+the system and the kernel are two repositories, and a change goes to the one
+whose code it is.
+
+**here**: everything that runs in ring 3 or builds the machine from outside
+it. the programs, the libc, the assembler, linker, make and ``ar``, git, the
+checkers for those, what goes on the medium, and which kernel is pinned in
+``kernel/``.
+
+**velvet**: everything that runs in ring 0 or before it, which is
+everything under ``kernel/``. the subsystems, the shell, philemon, the
+syscall layer, and the tools that write images and disks. a change to a file
+under ``kernel/`` is a change to velvet, sent there; this tree only
+ever changes which commit ``kernel/`` points at.
+
+a change that needs both, a new syscall being the usual one, lands in
+velvet first. this half follows as one change that moves the pin to a
+kernel that has the call and starts using it, so no commit here ever names
+a call its pinned kernel does not have.
 
 ways to contribute
 ------------------
@@ -20,7 +42,8 @@ there are three, and the first two are worth as much as the third.
 **report a bug.** open an issue. a bug report is a contribution on its own,
 and for a project this size it is often the most useful one. say:
 
-- the version, from the boot banner or ``kernel/version.h``;
+- the version, from ``base/ramdisk/etc/os-release``, and the kernel's, from
+  the boot banner, with the kernel commit ``git submodule status`` shows;
 - what you did, what you expected, what happened;
 - the serial log, if the machine got far enough to write one (``make
   boottest`` leaves one in ``bin/*-boottest.log``);
@@ -52,8 +75,9 @@ sees it:
 
 .. code-block:: sh
 
+   git submodule update --init   # the kernel, at the pinned commit
    make            # the boot image, velvetos.img
-   make test       # the host suites; no qemu, about a second
+   make test       # the host suites; no qemu, a minute or two
    make boottest   # boot in qemu and drive the shell over serial
 
 `building`_ has the toolchain and every target. if ``make test`` does not
@@ -80,8 +104,9 @@ the workflow
 
 #. **write the commit messages** as described below.
 
-#. **run the checks locally**: ``make test``, ``make``, ``make boottest``.
-   the same commands CI runs.
+#. **run the checks locally**: ``make test``, ``make``, ``make boottest``,
+   and ``make selfboot`` for anything that touches the toolchain. the same
+   commands CI runs.
 
 #. **push and open the pull request** against ``main``. in the description,
    say what the change is, why it is needed, which subsystem it touches, and
@@ -116,10 +141,11 @@ subject:
 
 the subsystem
    one word, matching the directory the change lives in and the vocabulary
-   the project already uses: ``mm``, ``sched``, ``fs``, ``net``,
-   ``drivers``, ``lib``, ``shell``, ``arch``, ``boot``, ``user``,
-   ``tools``, ``tests``, ``build``. a change that genuinely spans two gets
-   the one it is *about*, or ``tree`` for the rare cross-cutting one. this
+   the project already uses: ``user`` for the programs and the libc,
+   ``toolchain``, ``git``, ``tools``, ``tests``, ``build``, ``docs``, and
+   ``kernel`` for a commit that moves the pin. a change that genuinely spans
+   two gets the one it is *about*, or ``tree`` for the rare cross-cutting
+   one. this
    token is the only part of the message that must be lower case.
 
 the subject
@@ -274,7 +300,8 @@ what CI runs
 ------------
 
 the workflow is `.github/workflows/ci.yml <../.github/workflows/ci.yml>`_ and
-it runs on every push and every pull request. there are two jobs. the first
+it runs on every push and every pull request, on a checkout with the kernel
+at the pinned commit. there are two jobs. the first
 is ``lint`` on its own, because it needs no toolchain and no build: it is the
 fastest answer a pull request can get, and it should be the one that comes
 back first.
@@ -282,12 +309,13 @@ back first.
 the second job, ``build-and-test``, installs the toolchain and then, in order:
 
 ``make test``
-   the host suites, the real kernel sources compiled as ordinary linux
-   programs, plus ``checkfmt``, ``checkarch`` and the portable build. this is
-   fast, it needs no qemu, and it catches most of what the rest would.
+   the host suites for the library, the programs' shared code and git, and
+   the checks against nasm, ld, GNU make, GNU ar and real git. it needs no
+   qemu, and it catches most of what the rest would.
 
 ``make``
-   the kernel itself, with the machine's gcc, nasm and ld.
+   the kernel, through its own makefile, and the image, with the machine's
+   gcc, nasm and ld.
 
 ``make boottest``
    build the boot image, boot it headless in qemu, and type commands at the
@@ -323,8 +351,8 @@ and this project has already paid for that lesson more than once.
   should have caught it. if there is no such suite, that is the finding.
 - the test asserts on observed behaviour, not on the implementation. where
   somebody else's implementation exists, test against that:
-  ``tests/test_asm.c`` against nasm, ``tests/test_inflate.c`` against zlib,
-  ``tests/test_git.c`` against real git.
+  ``tests/test_asm.c`` against nasm, and ``tests/test_git.c`` against real
+  git.
 
 documentation
 -------------

@@ -27,9 +27,9 @@
 CC    = gcc
 ASM   = bin/tests/asm
 LINK  = bin/tests/link
-GENSYMS = bin/tests/gensyms
-BIN2C = bin/tests/bin2c
-MKBOOT = bin/tests/mkboot
+GENSYMS = bin/kernel/tests/gensyms
+BIN2C = bin/kernel/tests/bin2c
+MKBOOT = bin/kernel/tests/mkboot
 
 OUT   = obj/toolchain
 BIN   = bin/toolchain
@@ -37,14 +37,22 @@ BIN   = bin/toolchain
 # the same flags the ordinary build uses, because the point is that the
 # *tools* changed and nothing else did
 CFLAGS = -g -Wall -Wextra -std=gnu11 -ffreestanding -fno-stack-protector \
-         -fno-stack-check -fno-lto -fno-PIC -Ikernel -Iboot -MMD -MP \
+         -fno-stack-check -fno-lto -fno-PIC -Ikernel -Ikernel/boot -MMD -MP \
          -fno-omit-frame-pointer -DVELVETOS_ARCH_X86_64 \
          -m64 -march=x86-64 -mno-80387 -mno-mmx -mno-sse -mno-sse2 \
          -mno-red-zone -mcmodel=kernel
 
-CSRC = $(shell find kernel -name '*.c' -not -path 'kernel/arch/*') \
+# what the kernel is made of, in the kernel's own words. the list lives
+# in kernel/sources.mk and is read here rather than copied, and walked in
+# the same order the kernel's makefile walks it -- which matters, because
+# the order the objects are linked in decides where every function lands,
+# and the comparison at the end is byte for byte
+include kernel/sources.mk
+
+CSRC = $(shell find $(addprefix kernel/,$(KERNEL_PORTABLE)) -name '*.c') \
        $(shell find kernel/arch/x86_64 -name '*.c')
-ASMSRC = $(shell find kernel -name '*.asm' -not -name 'trampoline.asm')
+ASMSRC = $(shell find $(addprefix kernel/,$(KERNEL_PORTABLE)) \
+                      kernel/arch/x86_64 -name '*.asm' -not -name 'trampoline.asm')
 
 OBJ = $(patsubst kernel/%.c,$(OUT)/%.c.o,$(CSRC)) \
       $(patsubst kernel/%.asm,$(OUT)/%.asm.o,$(ASMSRC)) \
@@ -62,7 +70,7 @@ all: $(BIN)/velvetos.img
 # the linking and the C gensyms reading the symbol table our linker
 # wrote. that second part is the one worth watching: a kernel linked
 # without a symbol table boots perfectly and cannot say where it died
-$(BIN)/velvetos: $(OBJ) kernel/linker.ld $(GENSYMS)
+$(BIN)/velvet: $(OBJ) kernel/linker.ld $(GENSYMS)
 	@mkdir -p $(BIN) $(OUT)
 	@echo '  GENSYMS stub'
 	@$(GENSYMS) --stub > $(OUT)/ksyms.c
@@ -82,10 +90,11 @@ $(BIN)/velvetos: $(OBJ) kernel/linker.ld $(GENSYMS)
 # source archive are taken the same way, and for the same reason -- what
 # is being claimed here is the *kernel*, and saying so is better than
 # quietly building less of the image than it looks like
-$(BIN)/velvetos.img: $(BIN)/velvetos bin/boot/philemon.bin \
-                     bin/boot/philemon64.bin bin/ramdisk.tar bin/source.tar
-	@$(MKBOOT) $@ bin/boot/philemon.bin bin/boot/philemon64.bin \
-		$(BIN)/velvetos bin/ramdisk.tar bin/source.tar
+$(BIN)/velvetos.img: $(BIN)/velvet bin/kernel/boot/philemon.bin \
+                     bin/kernel/boot/philemon64.bin bin/ramdisk.tar bin/source.tar
+	@MKBOOT_ROOT=kernel $(MKBOOT) $@ bin/kernel/boot/philemon.bin \
+		bin/kernel/boot/philemon64.bin \
+		$(BIN)/velvet bin/ramdisk.tar bin/source.tar
 
 
 $(OUT)/%.c.o: kernel/%.c
@@ -116,7 +125,7 @@ $(OUT)/arch/x86_64/trampoline.c.o: $(OUT)/arch/x86_64/trampoline.c
 # is neither ours nor the compiler's
 $(OUT)/srcstamp.c: bin/source.tar
 	@mkdir -p $(@D)
-	@python3 tools/srcstamp.py bin/source.tar > $@
+	@python3 kernel/tools/srcstamp.py bin/source.tar > $@
 
 $(OUT)/srcstamp.o: $(OUT)/srcstamp.c
 	@$(CC) $(CFLAGS) -c $< -o $@
@@ -129,8 +138,8 @@ $(OUT)/srcstamp.o: $(OUT)/srcstamp.c
 # two rules for one target, which is what `::` is for: one says how big
 # the thing is and one says what built it, and they are independent
 # reasons to say something rather than one recipe with two halves
-said:: $(BIN)/velvetos
-	@echo "  the kernel:  $(shell wc -c < $(BIN)/velvetos) bytes"
+said:: $(BIN)/velvet
+	@echo "  the kernel:  $(shell wc -c < $(BIN)/velvet) bytes"
 
 said:: $(BIN)/velvetos.img
 	@echo "  the image:   $(shell wc -c < $(BIN)/velvetos.img) bytes"
