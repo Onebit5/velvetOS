@@ -12,6 +12,12 @@ KERNEL := velvetos
 # further down, `all: $(BOOTIMG)` quietly meant `all:` with nothing to do
 BOOTIMG := velvetos.img
 
+# and the disk `make run` attaches, for the same reason: `run` names it as
+# a prerequisite long before the rule that builds it, and defined down
+# there it was empty up here, so a fresh checkout's `make run` handed
+# qemu a drive nobody had made
+DISK := disk.img
+
 # knobs for `make run`. they have to be make variables rather than extra
 # words on the command line, because `make run -smp 4` hands -s -m -p to
 # *make* -- and -p means "print the entire database", which is a
@@ -251,29 +257,43 @@ obj/libc.a: $(LIBC_OBJS) obj/libc_string.o obj/libc_hash.o \
             obj/libc_inflate.o obj/libc_deflate.o obj/libc_epoch.o
 	$(AR) rcsD $@ $^
 
+# the three helpers most programs link, each compiled once by a rule of
+# its own. every program's rule used to compile all three itself, into
+# the same three object files, which is harmless one at a time and a race
+# under `make -j`: one link reads args.o while another program's rule is
+# half way through writing it, and the link fails on symbols that were
+# there a moment ago
+obj/user_args.o: userland/args.c userland/args.h
+	@mkdir -p $(@D)
+	$(CC) $(UCFLAGS) -c $< -o $@
+
+obj/user_textbuf.o: userland/textbuf.c userland/textbuf.h
+	@mkdir -p $(@D)
+	$(CC) $(UCFLAGS) -c $< -o $@
+
+obj/user_difflib.o: userland/difflib.c userland/difflib.h
+	@mkdir -p $(@D)
+	$(CC) $(UCFLAGS) -c $< -o $@
+
 # git is the one program that links more than the common set: the object
 # store and the seam under it. an explicit rule rather than adding them
 # to every program, since nothing else wants them
 base/ramdisk/bin/git: userland/git.c userland/gitobj.c userland/gitio_velvet.c userland/gitobj.h \
-                 userland/gitio.h userland/args.c userland/difflib.c toolchain/linker.ld \
+                 userland/gitio.h obj/user_args.o obj/user_difflib.o toolchain/linker.ld \
                  obj/libc.a
 	@mkdir -p $(@D)
 	$(CC) $(UCFLAGS) -Ikernel -c userland/git.c -o obj/user_git.o
 	$(CC) $(UCFLAGS) -Ikernel -c userland/gitobj.c -o obj/user_gitobj.o
 	$(CC) $(UCFLAGS) -Ikernel -c userland/gitio_velvet.c -o obj/user_gitio.o
-	$(CC) $(UCFLAGS) -c userland/args.c -o obj/user_args.o
-	$(CC) $(UCFLAGS) -c userland/difflib.c -o obj/user_difflib.o
 	$(LD) $(ULDFLAGS) obj/user_git.o obj/user_gitobj.o obj/user_gitio.o \
 	      obj/user_args.o obj/user_difflib.o obj/libc.a -o $@
 
-base/ramdisk/bin/%: userland/%.c userland/syscall.h userland/args.h userland/args.c userland/lines.h \
-               userland/textbuf.c userland/textbuf.h userland/difflib.c userland/difflib.h \
+base/ramdisk/bin/%: userland/%.c userland/syscall.h userland/args.h userland/lines.h \
+               userland/textbuf.h userland/difflib.h \
+               obj/user_args.o obj/user_textbuf.o obj/user_difflib.o \
                toolchain/linker.ld obj/libc.a
 	@mkdir -p $(@D)
 	$(CC) $(UCFLAGS) -Ikernel -c $< -o obj/user_$*.o
-	$(CC) $(UCFLAGS) -c userland/args.c -o obj/user_args.o
-	$(CC) $(UCFLAGS) -c userland/textbuf.c -o obj/user_textbuf.o
-	$(CC) $(UCFLAGS) -c userland/difflib.c -o obj/user_difflib.o
 	$(LD) $(ULDFLAGS) obj/user_$*.o obj/user_args.o obj/user_textbuf.o \
 	      obj/user_difflib.o obj/libc.a -o $@
 
@@ -434,7 +454,6 @@ run: $(BOOTIMG) $(DISK)
 # exists -- the whole point is that what you write to it stays written,
 # and regenerating it every boot would quietly undo that. `make disk`
 # starts over when you want a clean one
-DISK := disk.img
 
 # partitioned since 0.2.15, because a disk is not a filesystem -- it is
 # a table saying where several of them are. two of them here, of
