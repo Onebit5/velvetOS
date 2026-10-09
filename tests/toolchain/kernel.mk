@@ -79,18 +79,18 @@ all: $(BIN)/velvetos.img
 # the linking and the C gensyms reading the symbol table our linker
 # wrote. that second part is the one worth watching: a kernel linked
 # without a symbol table boots perfectly and cannot say where it died
-$(BIN)/velvet: $(OBJ) kernel/linker.ld $(GENSYMS) $(LINK)
+$(BIN)/velvet: $(OBJ) kernel/arch/x86_64/linker.ld $(GENSYMS) $(LINK)
 	@mkdir -p $(BIN) $(OUT)
 	@echo '  GENSYMS stub'
 	@$(GENSYMS) --stub > $(OUT)/ksyms.c
 	@$(CC) $(CFLAGS) -c $(OUT)/ksyms.c -o $(OUT)/ksyms.o
 	@echo '  LINK    pass 1 (ours)'
-	@$(LINK) -T kernel/linker.ld -o $@.pass1 $(OBJ) $(OUT)/ksyms.o
+	@$(LINK) -T kernel/arch/x86_64/linker.ld -o $@.pass1 $(OBJ) $(OUT)/ksyms.o
 	@echo '  GENSYMS from a kernel our linker wrote'
 	@$(GENSYMS) $@.pass1 > $(OUT)/ksyms.c
 	@$(CC) $(CFLAGS) -c $(OUT)/ksyms.c -o $(OUT)/ksyms.o
 	@echo '  LINK    pass 2 (ours)'
-	@$(LINK) -T kernel/linker.ld -o $@ $(OBJ) $(OUT)/ksyms.o
+	@$(LINK) -T kernel/arch/x86_64/linker.ld -o $@ $(OBJ) $(OUT)/ksyms.o
 	@$(GENSYMS) --check $@ $(OUT)/ksyms.c
 
 # the image. philemon is taken from the ordinary build: a bootloader is

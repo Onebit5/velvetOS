@@ -237,7 +237,7 @@ check 'and it survived'  'work is not system'
 # the source this kernel was built from, and it can be written out as
 # files somebody could edit
 check 'source found'     'source     :'
-check 'source is listed' 'kernel/main.c'
+check 'source is listed' 'kernel/init/main.c'
 check 'source mounted'   '/boot/src'
 check 'source reads'     'SUBLEVEL = '
 check 'source verifies'  'this is the source this kernel was built from'

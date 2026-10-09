@@ -581,7 +581,7 @@ KERNEL_OBJECTS := $(KOBJ)/x86_64/kernel.objects
 
 .PHONY: kernelcheck
 kernelcheck: bin/tests/link $(KERNEL_OUT)
-	@python3 tools/linkcheck.py kernel/linker.ld $$(cat $(KERNEL_OBJECTS))
+	@python3 tools/linkcheck.py kernel/arch/x86_64/linker.ld $$(cat $(KERNEL_OBJECTS))
 
 .PHONY: archeck
 archeck: bin/tests/ar bin/tests/link
@@ -620,7 +620,7 @@ test: $(KERNEL_OUT) $(BOOTIMG) $(USER_PROGS) $(RAMDISK) $(TEST_BINS) \
 		echo 'FAILED'; echo "$$out" | sed 's/^/    /'; fail=1; \
 	fi; \
 	printf '  %-10s ' kernelcheck; \
-	if out=$$(python3 tools/linkcheck.py kernel/linker.ld \
+	if out=$$(python3 tools/linkcheck.py kernel/arch/x86_64/linker.ld \
 			$$(cat $(KERNEL_OBJECTS)) 2>&1); then \
 		echo 'ok'; \
 	else \
