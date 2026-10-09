@@ -15,11 +15,12 @@ ways nothing executes, ours carries no debug sections, and section
 order and padding are decisions rather than results.
 
 and the answer is not "close enough". it is **identical, except for the
-clock**: `version.h` compiles `__TIME__` into the kernel, so two builds
-started in different seconds differ by the six bytes that says so, and
-nothing else. this checks that every difference is inside one of those
-timestamps, which is a stricter test than a byte count, since it means
-naming what each difference is rather than allowing a budget of them.
+clock**: `persona`, in kernel/shell/shell.c, compiles `__TIME__` into
+the kernel, so two builds started in different seconds differ by the
+six bytes that says so, and nothing else. this checks that every
+difference is inside one of those timestamps, which is a stricter test
+than a byte count, since it means naming what each difference is rather
+than allowing a budget of them.
 
 usage:  tools/selfcheck.py [ours.elf] [theirs.elf]
 """

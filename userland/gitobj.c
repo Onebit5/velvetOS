@@ -11,8 +11,8 @@
 #include <stdlib.h>
 
 #include "gitio.h"
-#include "lib/hash.h"
-#include "lib/deflate.h"
+#include <velvet/hash.h>
+#include <velvet/deflate.h>
 
 
 /* this file used snprintf until it had to run in two places. */

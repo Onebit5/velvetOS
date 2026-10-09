@@ -10,7 +10,8 @@ the syscall interface
 ---------------------
 
 ``userland/syscall.h`` is the user side of the door: six inline stubs around the
-``syscall`` instruction, and the call numbers. there is no libc out here;
+``syscall`` instruction, and a wrapper for each call. the numbers are the
+kernel's, included from ``kernel/include/uapi/velvet/``. there is no libc out here;
 these stubs are the whole runtime. ``rcx`` and ``r11`` are destroyed by the
 ``syscall`` instruction itself, and the kernel may clobber anything the abi
 allows a call to; the five-argument form puts the fourth and fifth in ``r10``
@@ -39,10 +40,19 @@ trusts a pointer it did not create.
 
 the other side of the door is the kernel's, and so is the table: every call,
 what it takes and what it gives back, is in ``kernel/docs/syscalls.rst``.
-the numbers are written down twice, in ``userland/syscall.h`` here and in
-``kernel/arch/x86_64/syscall.h`` there, and nothing but care keeps them
-equal. a new call lands in the kernel first and is usable here once
-``kernel/`` is pinned to a commit that has it.
+the numbers are written down once, in the kernel's
+``include/uapi/velvet/syscall.h``, and ``userland/syscall.h`` includes them
+from the pinned kernel, along with the signal numbers, the keys ``getkey``
+hands back and the terminal flags ``tty_mode`` takes. they used to be copied
+here, under an XXX saying nothing held the two lists together, and a call
+inserted in the middle of either would have renumbered every call after it.
+``struct stat`` and ``struct from`` keep the names a program expects and
+are checked against the kernel's ``struct user_stat`` and ``struct
+user_from`` at compile time, size and every field, so a layout that
+drifts does not build. the signal trampoline spells its ``mov`` out of
+``SYS_SIGRETURN`` for the same reason. a new call lands in the kernel
+first and is usable here once ``kernel/`` is pinned to a commit that has
+it and ``syscall.h`` has its wrapper.
 
 the libc
 --------

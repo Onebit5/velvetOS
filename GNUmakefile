@@ -97,7 +97,14 @@ UCFLAGS := -Wall -Wextra -std=gnu11 -O1 \
 	-ffreestanding -fno-stack-protector -fno-stack-check -fno-pic \
 	-fno-omit-frame-pointer \
 	-m64 -mno-80387 -mno-mmx -mno-sse -mno-sse2 -mno-red-zone -Iuserland \
-	-Iuserland/libc
+	-Iuserland/libc -Ikernel/include
+
+# what a program and the kernel agree on: the syscall numbers, the structs
+# the calls hand back, signals, keys and terminal flags. they are the
+# kernel's, in kernel/include/uapi/velvet/, and userland/syscall.h
+# includes them rather than keeping a copy, so everything that includes
+# that header is rebuilt when the pin moves to a kernel that changed them
+UAPI := $(wildcard kernel/include/uapi/velvet/*.h)
 
 AR ?= ar
 ULDFLAGS := -nostdlib -static -T toolchain/linker.ld
@@ -143,7 +150,7 @@ LIBC_OBJS := $(patsubst userland/libc/%.c,obj/libc_%.o,$(LIBC_SRCS))
 LIBC_HDRS := userland/libc/string.h userland/libc/stdlib.h userland/libc/stdio.h \
              userland/libc/format.h
 
-obj/libc_%.o: userland/libc/%.c $(LIBC_HDRS) userland/syscall.h
+obj/libc_%.o: userland/libc/%.c $(LIBC_HDRS) userland/syscall.h $(UAPI)
 	@mkdir -p $(@D)
 	$(CC) $(UCFLAGS) -c $< -o $@
 
@@ -159,30 +166,30 @@ obj/libc_%.o: userland/libc/%.c $(LIBC_HDRS) userland/syscall.h
 # the kernel being a submodule changes none of this. kernel/ is always
 # the kernel this system is pinned to, so the library is built from the
 # same lines the kernel was, and moving the pin moves both together
-obj/libc_string.o: kernel/lib/string.c kernel/lib/string.h
+obj/libc_string.o: kernel/lib/string.c kernel/include/velvet/string.h
 	@mkdir -p $(@D)
-	$(CC) $(UCFLAGS) -Ikernel -c $< -o $@
+	$(CC) $(UCFLAGS) -c $< -o $@
 
-obj/libc_hash.o: kernel/lib/hash.c kernel/lib/hash.h
+obj/libc_hash.o: kernel/lib/hash.c kernel/include/velvet/hash.h
 	@mkdir -p $(@D)
-	$(CC) $(UCFLAGS) -Ikernel -c $< -o $@
+	$(CC) $(UCFLAGS) -c $< -o $@
 
 # and the same for deflate, which a ring 3 program will need before it
 # can read a git object -- and which being in here at all proves it
 # compiles freestanding, with no libc of its own underneath it
-obj/libc_inflate.o: kernel/lib/inflate.c kernel/lib/deflate.h
+obj/libc_inflate.o: kernel/lib/inflate.c kernel/include/velvet/deflate.h
 	@mkdir -p $(@D)
-	$(CC) $(UCFLAGS) -Ikernel -c $< -o $@
+	$(CC) $(UCFLAGS) -c $< -o $@
 
-obj/libc_deflate.o: kernel/lib/deflate.c kernel/lib/deflate.h
+obj/libc_deflate.o: kernel/lib/deflate.c kernel/include/velvet/deflate.h
 	@mkdir -p $(@D)
-	$(CC) $(UCFLAGS) -Ikernel -c $< -o $@
+	$(CC) $(UCFLAGS) -c $< -o $@
 
 # the date conversion, so a commit can carry one. there is no clock
 # syscall; a file's timestamp and this are between them enough
-obj/libc_epoch.o: kernel/lib/epoch.c kernel/lib/epoch.h
+obj/libc_epoch.o: kernel/lib/epoch.c kernel/include/velvet/epoch.h
 	@mkdir -p $(@D)
-	$(CC) $(UCFLAGS) -Ikernel -c $< -o $@
+	$(CC) $(UCFLAGS) -c $< -o $@
 
 # `D` for the same reason the ramdisk tar carries --mtime=@0: an archive
 # built twice from the same objects should be the same file, and the one
@@ -215,21 +222,22 @@ obj/user_difflib.o: userland/difflib.c userland/difflib.h
 # store and the seam under it. an explicit rule rather than adding them
 # to every program, since nothing else wants them
 base/ramdisk/bin/git: userland/git.c userland/gitobj.c userland/gitio_velvet.c userland/gitobj.h \
-                 userland/gitio.h obj/user_args.o obj/user_difflib.o toolchain/linker.ld \
+                 userland/gitio.h userland/syscall.h $(UAPI) \
+                 obj/user_args.o obj/user_difflib.o toolchain/linker.ld \
                  obj/libc.a
 	@mkdir -p $(@D)
-	$(CC) $(UCFLAGS) -Ikernel -c userland/git.c -o obj/user_git.o
-	$(CC) $(UCFLAGS) -Ikernel -c userland/gitobj.c -o obj/user_gitobj.o
-	$(CC) $(UCFLAGS) -Ikernel -c userland/gitio_velvet.c -o obj/user_gitio.o
+	$(CC) $(UCFLAGS) -c userland/git.c -o obj/user_git.o
+	$(CC) $(UCFLAGS) -c userland/gitobj.c -o obj/user_gitobj.o
+	$(CC) $(UCFLAGS) -c userland/gitio_velvet.c -o obj/user_gitio.o
 	$(LD) $(ULDFLAGS) obj/user_git.o obj/user_gitobj.o obj/user_gitio.o \
 	      obj/user_args.o obj/user_difflib.o obj/libc.a -o $@
 
-base/ramdisk/bin/%: userland/%.c userland/syscall.h userland/args.h userland/lines.h \
+base/ramdisk/bin/%: userland/%.c userland/syscall.h $(UAPI) userland/args.h userland/lines.h \
                userland/textbuf.h userland/difflib.h \
                obj/user_args.o obj/user_textbuf.o obj/user_difflib.o \
                toolchain/linker.ld obj/libc.a
 	@mkdir -p $(@D)
-	$(CC) $(UCFLAGS) -Ikernel -c $< -o obj/user_$*.o
+	$(CC) $(UCFLAGS) -c $< -o obj/user_$*.o
 	$(LD) $(ULDFLAGS) obj/user_$*.o obj/user_args.o obj/user_textbuf.o \
 	      obj/user_difflib.o obj/libc.a -o $@
 
@@ -312,7 +320,7 @@ $(SOURCE): $(SOURCE_FILES)
 # its ramdisk and its source
 $(BOOTIMG): $(KBIN)/boot/philemon.bin $(KBIN)/boot/philemon64.bin \
             $(KBIN)/$(KERNEL) $(RAMDISK) $(SOURCE) kernel/tools/mkboot.py \
-            kernel/boot/philemon.inc kernel/boot/philemon.h
+            kernel/boot/philemon.inc kernel/include/velvet/philemon.h
 	@python3 kernel/tools/mkboot.py $@ $(KBIN)/boot/philemon.bin \
 		$(KBIN)/boot/philemon64.bin $(KBIN)/$(KERNEL) $(RAMDISK) $(SOURCE)
 
@@ -394,7 +402,7 @@ disk:
 # them.
 
 HOSTCC    := gcc
-HOSTFLAGS := -std=gnu11 -Wall -Wextra -Wno-stringop-truncation -Wno-stringop-overread -g -DVELVETOS_HOSTED -Ikernel -Ikernel/boot -DVELVETOS_ARCH_X86_64
+HOSTFLAGS := -std=gnu11 -Wall -Wextra -Wno-stringop-truncation -Wno-stringop-overread -g -DVELVETOS_HOSTED -Ikernel/include -Ikernel/arch/x86_64/include -DVELVETOS_ARCH_X86_64
 
 TEST_BINS := bin/tests/args bin/tests/libc bin/tests/textbuf \
              bin/tests/difflib bin/tests/git
@@ -463,7 +471,7 @@ bin/tests/asm: tests/test_asm.c toolchain/asmlib.c toolchain/asmlib.h \
 # passing -- which is the worst possible failure for a test suite, since
 # it is indistinguishable from the change being harmless.
 TEST_HEADERS := $(shell find userland toolchain tools -name '*.h' 2>/dev/null) \
-                $(shell find kernel/lib -name '*.h' 2>/dev/null)
+                $(shell find kernel/include -name '*.h' 2>/dev/null)
 $(TEST_BINS): $(TEST_HEADERS)
 
 # SRCS overrides what gets compiled, for tests that #include a .c file

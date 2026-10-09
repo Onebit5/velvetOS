@@ -92,8 +92,9 @@ where a version lives
 ``base/ramdisk/etc/os-release``
    the one place the system's version is written down, on the medium, for
    anything that asks what it is running on. the kernel's version is the
-   kernel's, in ``kernel/version.h``, and is what the boot banner,
-   ``arcana`` and ``persona`` print.
+   kernel's, at the top of ``kernel/GNUmakefile`` the way linux keeps
+   its own (``make -C kernel kernelrelease`` prints it), and is what the
+   boot banner, ``arcana`` and ``persona`` print.
 
 all three have to agree at the moment a release is cut. a version in one and
 not the others is the kind of inconsistency that looks fine until a machine

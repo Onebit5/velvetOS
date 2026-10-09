@@ -12,68 +12,16 @@
 #include <stddef.h>
 
 /*
- * XXX: these numbers are the whole interface, and they are written out
- * twice, once here and once in the kernel's dispatch, with nothing
- * holding the two lists together. inserting a call in the middle of
- * either one renumbers every call after it, and a program then asks the
- * kernel for something else entirely rather than failing, which turns
- * one forgotten edit into a whole image of subtly wrong programs.
- * mkboot.py already checks the boot constants agree across the same kind
- * of boundary; the syscall numbers want the same treatment.
+ * the numbers, and the structs and flags the calls take, are the
+ * kernel's, in its include/uapi/velvet/, and are included rather than
+ * copied. written out twice, a call inserted in the middle of either
+ * list renumbered every call after it, and a program then asked the
+ * kernel for something else entirely rather than failing
  */
-#define SYS_EXIT   0
-#define SYS_WRITE  1
-#define SYS_READ   2
-#define SYS_UPTIME 3
-#define SYS_YIELD  4
-#define SYS_SLEEP  5
-#define SYS_OPEN   6
-#define SYS_CLOSE  7
-#define SYS_GETPID 8
-#define SYS_SPAWN  9
-#define SYS_WAIT   10
-#define SYS_READDIR 11
-#define SYS_GETUID 12
-#define SYS_CREATE 13
-#define SYS_CHDIR  14
-#define SYS_GETCWD 15
-#define SYS_MKDIR  16
-#define SYS_RMDIR  17
-#define SYS_UNLINK 18
-#define SYS_RENAME 19
-#define SYS_STAT   20
-#define SYS_GETKEY 21
-#define SYS_SCREEN 22
-#define SYS_CURSOR 23
-#define SYS_CLEAR  24
-#define SYS_FORK   25
-#define SYS_MMAP   26
-#define SYS_MUNMAP 27
-#define SYS_CHMOD  28
-#define SYS_CHOWN  29
-#define SYS_SYMLINK 30
-#define SYS_READLINK 31
-#define SYS_GETENV 32
-#define SYS_SETENV 33
-#define SYS_SOCKET   34
-#define SYS_SENDTO   35
-#define SYS_RECVFROM 36
-#define SYS_RECVWAIT 37
-#define SYS_SELECT   38
-#define SYS_CONNECT  39
-#define SYS_LISTEN   40
-#define SYS_ACCEPT   41
-#define SYS_SEND     42
-#define SYS_RECV     43
-#define SYS_SHUTDOWN 44
-#define SYS_SIGNAL    45
-#define SYS_SIGSEND   46
-#define SYS_SIGRETURN 47
-#define SYS_SIGMASK   48
-#define SYS_TTYMODE   49
-#define SYS_WINSIZE   50
-#define SYS_NOW       51
-#define SYS_ALARM     52
+#include <uapi/velvet/syscall.h>
+#include <uapi/velvet/signal.h>
+#include <uapi/velvet/input.h>
+#include <uapi/velvet/tty.h>
 
 #define STDIN   0
 #define STDOUT  1
@@ -205,6 +153,32 @@ struct stat {
     uint8_t  pad;
 };
 
+/*
+ * struct user_stat, under the name a program expects. a struct of its
+ * own so that `struct stat` means here what it means everywhere else,
+ * and held to the kernel's layout field by field, so that the two
+ * cannot drift apart without the build saying so
+ */
+#define SAME_AS_KERNEL(ours, theirs, f) \
+    _Static_assert(offsetof(struct ours, f) == offsetof(struct theirs, f) \
+                   && sizeof(((struct ours *)0)->f) \
+                      == sizeof(((struct theirs *)0)->f), \
+                   "struct " #ours " and struct " #theirs " disagree on " #f)
+_Static_assert(sizeof(struct stat) == sizeof(struct user_stat),
+               "struct stat and struct user_stat are not the same size");
+SAME_AS_KERNEL(stat, user_stat, size);
+SAME_AS_KERNEL(stat, user_stat, mode);
+SAME_AS_KERNEL(stat, user_stat, is_dir);
+SAME_AS_KERNEL(stat, user_stat, uid);
+SAME_AS_KERNEL(stat, user_stat, gid);
+SAME_AS_KERNEL(stat, user_stat, is_symlink);
+SAME_AS_KERNEL(stat, user_stat, year);
+SAME_AS_KERNEL(stat, user_stat, month);
+SAME_AS_KERNEL(stat, user_stat, day);
+SAME_AS_KERNEL(stat, user_stat, hour);
+SAME_AS_KERNEL(stat, user_stat, minute);
+SAME_AS_KERNEL(stat, user_stat, second);
+
 static inline long stat(const char *path, struct stat *out)
 {
     return syscall3(SYS_STAT, (long)path, (long)ustrlen(path), (long)out);
@@ -281,16 +255,6 @@ static inline long wait(long pid, int *code)
     return syscall2(SYS_WAIT, pid, (long)code);
 }
 
-#define KEY_UP     0x100
-#define KEY_DOWN   0x101
-#define KEY_LEFT   0x102
-#define KEY_RIGHT  0x103
-#define KEY_DELETE 0x104
-#define KEY_HOME   0x105
-#define KEY_END    0x106
-#define KEY_PGUP   0x107
-#define KEY_PGDN   0x108
-
 static inline long getkey(void)
 {
     return syscall0(SYS_GETKEY);
@@ -332,6 +296,14 @@ struct from {
     unsigned short port;
     unsigned short reserved;
 };
+
+/* and struct user_from, the same way */
+_Static_assert(sizeof(struct from) == sizeof(struct user_from),
+               "struct from and struct user_from are not the same size");
+SAME_AS_KERNEL(from, user_from, address);
+SAME_AS_KERNEL(from, user_from, port);
+SAME_AS_KERNEL(from, user_from, reserved);
+#undef SAME_AS_KERNEL
 
 static inline long socket(unsigned short port)
 {
@@ -390,29 +362,20 @@ static inline long shutdown(long handle)
     return syscall1(SYS_SHUTDOWN, handle);
 }
 
-#define SIG_DEFAULT 0
-#define SIG_IGNORE  1
-
-#define SIGHUP   1
-#define SIGINT   2
-#define SIGQUIT  3
-#define SIGABRT  6
-#define SIGKILL  9
-#define SIGSEGV 11
-#define SIGPIPE 13
-#define SIGALRM 14
-#define SIGTERM 15
-#define SIGCHLD 17
-#define SIGCONT 18
-#define SIGSTOP 19
-#define SIGTSTP 20
+/*
+ * where a handler returns to. naked, so the number cannot be handed in as
+ * an operand, and it is spelled out of SYS_SIGRETURN instead of written
+ * as a literal that could fall out of step with it
+ */
+#define SIGRETURN_STR_(n) #n
+#define SIGRETURN_STR(n)  SIGRETURN_STR_(n)
 
 __attribute__((naked, unused))
 static void __sig_trampoline(void)
 {
     __asm__ volatile (
         "mov %%rsp, %%rdi\n\t"
-        "mov $47, %%eax\n\t"
+        "mov $" SIGRETURN_STR(SYS_SIGRETURN) ", %%eax\n\t"
         "syscall\n\t"
         "ud2\n\t"
         : : : "memory");
@@ -433,12 +396,6 @@ static inline long sigmask(long set, unsigned long mask)
 {
     return syscall2(SYS_SIGMASK, set, (long)mask);
 }
-
-#define TTY_RAW      1
-#define TTY_ECHO     2
-#define TTY_SIGNALS  4
-
-#define TTY_COOKED  (TTY_ECHO | TTY_SIGNALS)
 
 static inline long tty_mode(unsigned long flags)
 {

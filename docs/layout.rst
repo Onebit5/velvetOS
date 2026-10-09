@@ -60,17 +60,19 @@ the line between this tree and the kernel
 **this tree uses the kernel's files and the kernel never uses this tree's.**
 the libc compiles ``kernel/lib/string.c``, ``hash.c``, ``deflate.c``,
 ``inflate.c`` and ``epoch.c`` rather than keeping copies; git's object store
-includes the kernel's headers for the same reason; the disk image is written
+includes the kernel's headers, from ``kernel/include/``, for the same
+reason; every program includes the syscall numbers and what the calls take
+from ``kernel/include/uapi/velvet/``; the disk image is written
 by ``kernel/tools/mkboot.py`` and the disks by the kernel's ``mkext4``; and
 the self-hosted build reads ``kernel/sources.mk`` for what the kernel is made
 of. every one of those reaches into the pinned commit, so moving the pin
 moves them all together, and nothing in ``kernel/`` names a path out here.
 that direction is what lets the kernel be a project of its own.
 
-the one thing written down on both sides is the syscall table:
-``userland/syscall.h`` here and ``kernel/arch/x86_64/syscall.h`` there,
-equal by care rather than by construction. see `the userland
-<subsystems/userland.rst>`_.
+the syscall table used to be the one thing written down on both sides,
+equal by care rather than by construction. it is written once now, in the
+kernel's ``include/uapi/velvet/``, and ``userland/syscall.h`` includes it.
+see `the userland <subsystems/userland.rst>`_.
 
 inputs and outputs
 ------------------
@@ -78,7 +80,8 @@ inputs and outputs
 ``base/ramdisk/`` and ``base/diskroot/`` are *inputs*: the first is packed into
 the boot tar the loader hands the kernel, the second is copied onto the data
 disk by ``make run``. ``base/ramdisk/etc/os-release`` is where the system's
-own version is written; the kernel's is in ``kernel/version.h``.
+own version is written; the kernel's is at the top of
+``kernel/GNUmakefile``.
 
 everything under ``bin/`` and ``obj/`` is generated and comes back out with
 ``make clean``, the kernel's outputs included: the kernel is built into

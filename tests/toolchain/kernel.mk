@@ -37,7 +37,8 @@ BIN   = bin/toolchain
 # the same flags the ordinary build uses, because the point is that the
 # *tools* changed and nothing else did
 CFLAGS = -g -Wall -Wextra -std=gnu11 -ffreestanding -fno-stack-protector \
-         -fno-stack-check -fno-lto -fno-PIC -Ikernel -Ikernel/boot -MMD -MP \
+         -fno-stack-check -fno-lto -fno-PIC -MMD -MP \
+         -Ikernel/include -Ikernel/arch/x86_64/include -I$(OUT)/include \
          -fno-omit-frame-pointer -DVELVETOS_ARCH_X86_64 \
          -m64 -march=x86-64 -mno-80387 -mno-mmx -mno-sse -mno-sse2 \
          -mno-red-zone -mcmodel=kernel
@@ -53,6 +54,14 @@ CSRC = $(shell find $(addprefix kernel/,$(KERNEL_PORTABLE)) -name '*.c') \
        $(shell find kernel/arch/x86_64 -name '*.c')
 ASMSRC = $(shell find $(addprefix kernel/,$(KERNEL_PORTABLE)) \
                       kernel/arch/x86_64 -name '*.asm' -not -name 'trampoline.asm')
+
+# the version, from the first three lines of the kernel's GNUmakefile,
+# where it is written once. read with sed rather than by including that
+# makefile, which is GNU make's and says things ours does not, and
+# written into a header of this build's own, so that nothing the kernel
+# is compiled from here was produced by the other build
+KERNELRELEASE = $(shell sed -n '1,3s/^[A-Z]* = //p' kernel/GNUmakefile | paste -sd.)
+VERSION_H = $(OUT)/include/generated/version.h
 
 OBJ = $(patsubst kernel/%.c,$(OUT)/%.c.o,$(CSRC)) \
       $(patsubst kernel/%.asm,$(OUT)/%.asm.o,$(ASMSRC)) \
@@ -97,7 +106,11 @@ $(BIN)/velvetos.img: $(BIN)/velvet bin/kernel/boot/philemon.bin \
 		$(BIN)/velvet bin/ramdisk.tar bin/source.tar
 
 
-$(OUT)/%.c.o: kernel/%.c
+$(VERSION_H): kernel/GNUmakefile
+	@mkdir -p $(@D)
+	@echo '#define VELVET_VERSION "$(KERNELRELEASE)"' > $@
+
+$(OUT)/%.c.o: kernel/%.c $(VERSION_H)
 	@mkdir -p $(@D)
 	@$(CC) $(CFLAGS) -c $< -o $@
 

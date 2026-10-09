@@ -140,10 +140,10 @@ echo "booting $BOOTIMG and driving the shell over serial..."
     # machine that is using it
     printf 'src\r';   sleep 2
     printf 'ls /boot/src\r'; sleep 4
-    printf 'cat /boot/src/kernel/version.h\r'; sleep 3
+    printf 'head -n 3 /boot/src/kernel/GNUmakefile\r'; sleep 3
     printf 'src verify\r'; sleep 20
     printf 'src unpack /work/src\r'; sleep 12
-    printf 'cat /work/src/kernel/boot/philemon.h\r'; sleep 3
+    printf 'cat /work/src/kernel/include/velvet/philemon.h\r'; sleep 3
     printf 'sync\r';   sleep 2
 } | timeout 300 qemu-system-x86_64 \
         -M q35 -m 2G -smp "${CPUS:-2}" -boot order=c \
@@ -239,7 +239,7 @@ check 'and it survived'  'work is not system'
 check 'source found'     'source     :'
 check 'source is listed' 'kernel/main.c'
 check 'source mounted'   '/boot/src'
-check 'source reads'     'VERSION "0.4.0"'
+check 'source reads'     'SUBLEVEL = '
 check 'source verifies'  'this is the source this kernel was built from'
 check 'source unpacks'   'they are yours to edit'
 check 'and it is real'   'named for the one who grants the power'
