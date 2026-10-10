@@ -64,6 +64,6 @@ other files
 - `README.md <../README.md>`_. what the machine is, in one screen.
 - `ROADMAP.md <../ROADMAP.md>`_. what it will be, version by version.
 - `CHANGELOG.md <../CHANGELOG.md>`_. what it has been.
-- `LICENSE <../LICENSE>`_ and `FONT-LICENSE <../FONT-LICENSE>`_.
+- `LICENSE <../LICENSE>`_.
 - ``.gitmodules``. where the kernel comes from.
 - `.github/workflows/ci.yml <../.github/workflows/ci.yml>`_. what CI runs.

@@ -288,7 +288,7 @@ $(RAMDISK): $(USER_PROGS) $(RAMDISK_FILES)
 # is what the kernel's own build would leave out, plus the file a
 # submodule checkout keeps its git pointer in
 SOURCE_FILES := GNUmakefile README.md CHANGELOG.md ROADMAP.md \
-                LICENSE FONT-LICENSE .gitignore .gitmodules \
+                LICENSE .gitignore .gitmodules \
                 CONTRIBUTING.md CODE_OF_CONDUCT.md \
                 $(shell find .github userland toolchain tools tests docs -type f | sort) \
                 $(shell find base/ramdisk base/diskroot -type f \
