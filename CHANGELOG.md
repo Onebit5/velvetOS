@@ -27,9 +27,9 @@ changelog full of "tinyOS now does X" would have left a choice between
 rewriting fifty-four entries -- losing the only record of what the thing
 was called when -- and leaving them inconsistent with everything else.
 
-the versions are the ones in [ROADMAP.md](ROADMAP.md), and each of them
-was a machine that booted -- that is the rule the roadmap sets itself
-and the reason there are fifty-four of these rather than five.
+each version below was a machine that booted: that is the rule the
+roadmap sets itself, and the reason there are fifty-four of these rather
+than five. what is still to come is in [ROADMAP.md](ROADMAP.md).
 
 ---
 

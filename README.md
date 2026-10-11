@@ -21,7 +21,7 @@ they link, git, what goes on the disk, and the toolchain. the toolchain is ours
 except for the C compiler, which is gcc: our make, our assembler and our linker build
 the kernel out of gcc's objects, and it boots.
 
-where it goes next is [ROADMAP.md](ROADMAP.md).
+where it goes next is [ROADMAP.md](ROADMAP.md), with the non-goals at the top.
 
 still a non-goal: being useful in any practical sense. networking stopped
 being one in 0.3.0.

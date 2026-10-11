@@ -144,9 +144,9 @@ $(OUT)/arch/x86_64/trampoline.c.o: $(OUT)/arch/x86_64/trampoline.c
 	@$(CC) $(CFLAGS) -c $< -o $@
 
 # the stamp that says which source this kernel was built from. still
-# python, and named here rather than hidden: 0.4.10 is where it becomes
-# a C program, and until then this is the one thing in the chain that
-# is neither ours nor the compiler's
+# python, and named here rather than hidden: ROADMAP.md's 0.4.1 is where
+# it becomes a C program, and until then this is the one thing in the
+# chain that is neither ours nor the compiler's
 $(OUT)/srcstamp.c: bin/source.tar
 	@mkdir -p $(@D)
 	@python3 $(KSRC)/tools/srcstamp.py bin/source.tar > $@
