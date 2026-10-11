@@ -1,7 +1,7 @@
 ; sixteen bits, which is a different encoding rather than a smaller one.
 ;
-; real mode has its own ModRM table -- four registers, in pairs, and no
-; SIB byte anywhere -- and it flips the meaning of the operand-size
+; real mode has its own ModRM table (four registers, in pairs, and no
+; SIB byte anywhere), and it flips the meaning of the operand-size
 ; prefix: `ax` is free here and `eax` costs a 0x66, which is exactly the
 ; other way round from every other file in this directory. everything a
 ; woken core does before it reaches long mode is written in this, so

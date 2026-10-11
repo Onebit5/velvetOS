@@ -1,7 +1,7 @@
 # the two assignments, and the difference between them.
 #
 # NAME is recursive, so GREETING sees whatever NAME means when GREETING
-# is *used* -- which is the last thing this file says about it. LATE is
+# is *used*, which is the last thing this file says about it. LATE is
 # simple, so it froze the value that was there on its own line.
 NAME = velvet
 GREETING = hello $(NAME)

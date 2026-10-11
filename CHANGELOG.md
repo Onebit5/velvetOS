@@ -12,7 +12,7 @@ were split when the kernel left. they are a record of what happened,
 written when it happened, and they stay as they were written.
 
 this lived at the bottom of README.md until 0.3.0, by which point it was
-fifty-four entries and rather more than half the file -- a reader who
+fifty-four entries and rather more than half the file: a reader who
 wanted to know what the machine *is* had to scroll past everything it had
 ever been to find out. so it moved here, and the README is about the
 current machine again.
@@ -24,8 +24,8 @@ nothing to edit here.
 
 that was luck rather than discipline, and it is worth noticing. a
 changelog full of "tinyOS now does X" would have left a choice between
-rewriting fifty-four entries -- losing the only record of what the thing
-was called when -- and leaving them inconsistent with everything else.
+rewriting fifty-four entries (losing the only record of what the thing
+was called when) and leaving them inconsistent with everything else.
 
 each version below was a machine that booted: that is the rule the
 roadmap sets itself, and the reason there are fifty-four of these rather

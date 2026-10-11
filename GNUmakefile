@@ -16,7 +16,7 @@
 #   make clean
 
 # the bootable image, and the default target. defined up here with the
-# other names because a prerequisite is expanded where it is written --
+# other names because a prerequisite is expanded where it is written:
 # further down, `all: $(BOOTIMG)` quietly meant `all:` with nothing to do
 BOOTIMG := velvetos.img
 
@@ -28,7 +28,7 @@ DISK := disk.img
 
 # knobs for `make run`. they have to be make variables rather than extra
 # words on the command line, because `make run -smp 4` hands -s -m -p to
-# *make* -- and -p means "print the entire database", which is a
+# *make*, and -p means "print the entire database", which is a
 # surprising amount of ukrainian
 CPUS ?= 4
 MEM  ?= 2G
@@ -132,8 +132,8 @@ kernel-update:
 	@python3 tools/kernel.py update '$(KERNEL_RELEASE)' '$(KERNEL_URL)'
 
 #
-# a ring 3 program is built much like the kernel -- freestanding, no
-# libc -- but without -mcmodel=kernel, since it lives at 0x400000 in
+# a ring 3 program is built much like the kernel (freestanding, no
+# libc) but without -mcmodel=kernel, since it lives at 0x400000 in
 # the low half rather than up in the higher one. it gets copied into
 # the ramdisk, which is how the kernel finds it.
 
@@ -177,7 +177,7 @@ userland: $(USER_PROGS)
 #
 # `start.c` is the one that matters: it defines `_start`, calls `main`
 # and exits with what it returned. before it, every program here was
-# entered at `_start` and had to call `exit` itself -- which no program
+# entered at `_start` and had to call `exit` itself, which no program
 # written anywhere else does, so every one of them had to be edited
 # before it would build. that edit is what 0.3.8 removes.
 #
@@ -186,7 +186,7 @@ userland: $(USER_PROGS)
 # always included; a member of an archive is pulled in only if it
 # resolves something still undefined. so a program that writes its own
 # `_start` never drags start.o in and never sees a duplicate, while one
-# that writes `main` gets it -- which is exactly the rule that lets old
+# that writes `main` gets it, which is exactly the rule that lets old
 # programs and ported ones share a build.
 LIBC_SRCS := userland/libc/stdlib.c userland/libc/format.c \
              userland/libc/stdio.c userland/libc/start.c
@@ -201,10 +201,10 @@ obj/libc_%.o: userland/libc/%.c $(LIBC_HDRS) userland/syscall.h $(UAPI)
 # the hashes go in the archive rather than into every program, which is
 # what an archive is for: a member is pulled in only if something
 # undefined needs it, so `sha1sum` gets them and `echo` does not. the
-# source is the kernel's -- one implementation, checked once, and the
+# source is the kernel's: one implementation, checked once, and the
 # alternative is the same file twice, which this project already has one
 # of and does not need two
-# the string functions, from the kernel's copy of them -- which is now
+# the string functions, from the kernel's copy of them, which is now
 # the only copy. compiled twice: freestanding up there, hosted here.
 #
 # the kernel being fetched changes none of this. $(KERNEL_SRC) is
@@ -220,7 +220,7 @@ obj/libc_hash.o: $(KERNEL_SRC)/lib/hash.c $(KERNEL_SRC)/include/velvet/hash.h
 	$(CC) $(UCFLAGS) -c $< -o $@
 
 # and the same for deflate, which a ring 3 program will need before it
-# can read a git object -- and which being in here at all proves it
+# can read a git object, and which being in here at all proves it
 # compiles freestanding, with no libc of its own underneath it
 obj/libc_inflate.o: $(KERNEL_SRC)/lib/inflate.c $(KERNEL_SRC)/include/velvet/deflate.h
 	@mkdir -p $(@D)
@@ -312,7 +312,7 @@ $(RAMDISK): $(USER_PROGS) $(RAMDISK_FILES)
 # it is another ustar, for the plainest of reasons: the kernel already
 # reads one, and a second container format would be a second parser to
 # get wrong. it is *not* compressed, which is a decision rather than an
-# oversight -- the one moment anybody wants this archive is the moment
+# oversight: the one moment anybody wants this archive is the moment
 # something has gone badly wrong, and a recovery path that needs a
 # decompressor between you and the source is a recovery path with one
 # more thing in it to be broken. three and a half megabytes of a disk is
@@ -322,7 +322,7 @@ $(RAMDISK): $(USER_PROGS) $(RAMDISK_FILES)
 # list than "everything the compiler reads". the tests are the reason
 # any of this is trustworthy and the prose is where the reasoning
 # lives, so both ship. what stays out is anything the build *produces*
-# -- bin/, obj/, base/ramdisk/bin/ -- because a source tree carrying its own
+# (bin/, obj/, base/ramdisk/bin/), because a source tree carrying its own
 # output is a source tree that disagrees with itself the moment you
 # build it.
 #
@@ -357,7 +357,7 @@ KERNEL_FILES := $(shell cd $(KERNEL_SRC) 2>/dev/null && \
 # --mode is there for a subtler version of the same thing. git records
 # one bit of a mode, the ramdisk rule above sets others by hand, and the
 # result is that base/ramdisk/velvet-room.txt is 0600 after a build and 0644
-# in a fresh checkout -- so the archive, and therefore the stamp, would
+# in a fresh checkout, so the archive, and therefore the stamp, would
 # depend on whether anybody had built anything yet. it states what it
 # wants instead: everyone may read, only the owner may write, and
 # whatever was executable stays executable
@@ -386,7 +386,7 @@ $(BOOTIMG): $(KBIN)/boot/philemon.bin $(KBIN)/boot/philemon64.bin \
 bootimg: $(BOOTIMG)
 
 # two drives: the one philemon is on, and the one with the files. the
-# boot image goes first and is named as the boot device twice over --
+# boot image goes first and is named as the boot device twice over:
 # `order=c` so the bios does not go looking for a floppy it has not got,
 # and a bootindex on each so the order is not left to chance.
 #
@@ -402,7 +402,7 @@ bootimg: $(BOOTIMG)
 # and none of a server.
 #
 # and the forward is the *only* way in. qemu's user-mode networking is a
-# userspace nat, so 10.0.2.15 is not an address the host can route to --
+# userspace nat, so 10.0.2.15 is not an address the host can route to:
 # `nc -u 10.0.2.15 5556` from outside goes nowhere at all, silently,
 # which looks exactly like a guest that is ignoring its own port. it is
 # `nc -u localhost 5556` that arrives
@@ -419,21 +419,21 @@ run: $(BOOTIMG) $(DISK)
 
 # the disk, which is a real filesystem rather than an archive: built out
 # of whatever is in base/diskroot/, and attached to qemu as a second
-# drive. it is deliberately NOT rebuilt by `make run` once it exists --
+# drive. it is deliberately NOT rebuilt by `make run` once it exists:
 # the whole point is that what you write to it stays written, and
 # regenerating it every boot would quietly undo that. `make disk` starts
 # over when you want a clean one
 #
-# partitioned since 0.2.15, because a disk is not a filesystem -- it is
+# partitioned since 0.2.15, because a disk is not a filesystem: it is
 # a table saying where several of them are. three of them since 0.3.25:
 # the system, somewhere to *work* that is not the system, and the fat32
-# one that has been here since 0.2.15 -- because a machine that mounts
+# one that has been here since 0.2.15, because a machine that mounts
 # its work beside its system is the point of that version, and a third
 # filesystem of another kind is still what `mount <n>` has to have
 # something to do.
 #
 # the system partition is built by the C formatter rather than the
-# python one, so the disk the machine actually boots is a real ext4 --
+# python one, so the disk the machine actually boots is a real ext4,
 # extents and all. and the work image is made smaller than the partition
 # it goes in, and that is deliberate: 8 MiB of filesystem inside 24 MiB
 # of partition is exactly the situation `resize` exists for, so `make
@@ -469,7 +469,7 @@ TEST_BINS := bin/tests/args bin/tests/libc bin/tests/textbuf \
 bin/tests/args:     tests/test_args.c     userland/args.c
 # the library programs link against. the allocator is included rather
 # than linked so its free list can be reset between sections, and
-# `libc_get_pages` is the one seam -- what is tested is the real
+# `libc_get_pages` is the one seam: what is tested is the real
 # allocator with only the source of memory replaced
 bin/tests/libc:     tests/test_libc.c     userland/libc/stdlib.c \
                     userland/libc/format.c $(KERNEL_SRC)/lib/string.c
@@ -479,19 +479,19 @@ bin/tests/libc:     HOSTFLAGS += -I$(KERNEL_SRC)
 # structure: the drawing needs a terminal and the structure needs
 # nothing, and the structure is the half where a bug eats a file
 bin/tests/textbuf:  tests/test_textbuf.c  userland/textbuf.c
-# the property that matters is not that it spots a change -- anything
-# does -- but that its edits, applied to the first file, give the
+# the property that matters is not that it spots a change (anything
+# does) but that its edits, applied to the first file, give the
 # second. that is checkable exactly on any pair of inputs
 bin/tests/difflib:  tests/test_difflib.c  userland/difflib.c
 # the git object store. a suite with no arguments, and with some the
-# tool tools/gitcheck.py uses to build a whole repository -- which real
+# tool tools/gitcheck.py uses to build a whole repository, which real
 # git is then asked to read
 bin/tests/git:      tests/test_git.c      userland/gitobj.c userland/gitio_host.c \
                     $(KERNEL_SRC)/lib/hash.c $(KERNEL_SRC)/lib/inflate.c \
                     $(KERNEL_SRC)/lib/deflate.c
 bin/tests/git:      HOSTFLAGS += -Iuserland
 
-# not a suite that checks itself -- it is the assembler, built as a
+# not a suite that checks itself: it is the assembler, built as a
 # program so tools/asmcheck.py can run it against nasm. an assembler
 # cannot be eyeballed: wrong bytes look exactly like right ones
 # built by a rule of its own, because it is not in TEST_BINS: it is not
@@ -505,7 +505,7 @@ bin/tests/link: toolchain/linker.c
 	$(HOSTCC) $(HOSTFLAGS) toolchain/linker.c -o $@
 
 # and make, the same way again. what it produces is not commands but a
-# *decision* -- whether to run one at all -- and a wrong decision looks
+# *decision*, whether to run one at all, and a wrong decision looks
 # exactly like a build that worked
 bin/tests/make: toolchain/make.c
 	@mkdir -p $(@D)
@@ -528,14 +528,14 @@ bin/tests/asm: tests/test_asm.c toolchain/asmlib.c toolchain/asmlib.h \
 # coarse on purpose. the tests are compiled straight to a binary in one
 # step and had no header prerequisites at all, so editing a header and
 # running `make test` ran the *previous* binaries and reported them
-# passing -- which is the worst possible failure for a test suite, since
+# passing, which is the worst possible failure for a test suite, since
 # it is indistinguishable from the change being harmless.
 TEST_HEADERS := $(shell find userland toolchain tools -name '*.h' 2>/dev/null) \
                 $(shell find $(KERNEL_SRC)/include -name '*.h' 2>/dev/null)
 $(TEST_BINS): $(TEST_HEADERS)
 
 # SRCS overrides what gets compiled, for tests that #include a .c file
-# directly -- that file still belongs in the prerequisites so make
+# directly: that file still belongs in the prerequisites so make
 # rebuilds when it changes, but compiling it twice would give me
 # duplicate symbols
 $(TEST_BINS):
@@ -546,7 +546,7 @@ $(TEST_BINS):
 # files, every one of which now comes out indistinguishable from nasm's.
 # trampoline.asm was absent until 0.4.0 because it diverged at byte 22
 # on real mode's addressing, and tests/asm/real.asm is beside it for the
-# same reason a fixture ever exists -- the trampoline uses one corner of
+# same reason a fixture ever exists: the trampoline uses one corner of
 # sixteen bits and that file uses the whole of it
 ASM_CHECKED := tests/asm/basic.asm tests/asm/data.asm tests/asm/jumps.asm \
                tests/asm/memory.asm tests/asm/relocs.asm tests/asm/real.asm \
@@ -557,7 +557,7 @@ ASM_CHECKED := tests/asm/basic.asm tests/asm/data.asm tests/asm/jumps.asm \
 
 # the assembler is not a suite that checks itself: it is a program, and
 # the only thing that can judge it is another assembler. so it gets a
-# step of its own -- every source in tests/asm/ is assembled by ours and
+# step of its own: every source in tests/asm/ is assembled by ours and
 # by nasm and compared byte for byte
 .PHONY: asmcheck
 asmcheck: bin/tests/asm
@@ -572,11 +572,11 @@ gitcheck: bin/tests/git
 	@python3 tools/gitcheck.py
 
 # and make against gnu make. a fixture is a makefile and a sequence of
-# edits, replayed against both -- the edits being the point, since a
+# edits, replayed against both, the edits being the point, since a
 # make that gets a cold build right and an incremental one wrong is the
 # normal kind of broken
 # and the three of them together. our make reads a makefile, runs our
-# assembler over two sources, and hands the objects to our linker -- no
+# assembler over two sources, and hands the objects to our linker: no
 # gcc, no nasm, no ld, no gnu make anywhere in it. then the result is
 # compared against what nasm and ld produce from the same two files,
 # because "it built something" and "it built the right thing" are not

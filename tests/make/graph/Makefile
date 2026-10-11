@@ -1,7 +1,7 @@
 # the shapes a graph actually comes in, none of which are a list.
 #
 # `shared` is needed by both halves and must be built once. that is not
-# an optimisation -- a recipe that runs twice for one target is a recipe
+# an optimisation: a recipe that runs twice for one target is a recipe
 # racing itself, and the second run of a compiler may well overwrite the
 # output the first one's reader is already using.
 all: left right

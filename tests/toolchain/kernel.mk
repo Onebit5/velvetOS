@@ -5,7 +5,7 @@
 # reads it, our assembler turns the four assembly files into objects,
 # our linker turns ninety objects and a script with PHDRS in it into a
 # kernel, and the only program in the chain that is not ours is the C
-# compiler -- which is what 0.4.x is about and what the versions after
+# compiler, which is what 0.4.x is about and what the versions after
 # this one replace.
 #
 # it is a separate file rather than a switch in the GNUmakefile on
@@ -53,7 +53,7 @@ CFLAGS = -g -Wall -Wextra -std=gnu11 -ffreestanding -fno-stack-protector \
 
 # what the kernel is made of, in the kernel's own words. the list lives
 # in its sources.mk and is read here rather than copied, and walked in
-# the same order the kernel's makefile walks it -- which matters, because
+# the same order the kernel's makefile walks it, which matters, because
 # the order the objects are linked in decides where every function lands,
 # and the comparison at the end is byte for byte
 include $(KSRC)/sources.mk
@@ -80,7 +80,7 @@ all: $(BIN)/velvetos.img
 #
 # the symbol table records addresses and linking it in changes them.
 # .ksyms sits after .text in the script, so folding it in shifts .data
-# and can never move a function -- and `gensyms --check` proves that
+# and can never move a function, and `gensyms --check` proves that
 # held rather than assuming it.
 #
 # it is the same dance the ordinary build does, with our linker doing
@@ -104,7 +104,7 @@ $(BIN)/velvet: $(OBJ) $(KSRC)/arch/x86_64/linker.ld $(GENSYMS) $(LINK)
 # the image. philemon is taken from the ordinary build: a bootloader is
 # sixteen-bit code with an `a32` in it and unreal mode underneath, which
 # is the assembler's next mile rather than this one. the ramdisk and the
-# source archive are taken the same way, and for the same reason -- what
+# source archive are taken the same way, and for the same reason: what
 # is being claimed here is the *kernel*, and saying so is better than
 # quietly building less of the image than it looks like
 $(BIN)/velvetos.img: $(BIN)/velvet bin/kernel/boot/philemon.bin \

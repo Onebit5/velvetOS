@@ -1,5 +1,5 @@
 /* the other kind of script: one that page-aligns its sections, the way
- * the kernel's does and for the same reason -- permissions come at page
+ * the kernel's does and for the same reason: permissions come at page
  * granularity, so a .text sharing its last page with .rodata is either
  * writable code or unreadable constants.
  *

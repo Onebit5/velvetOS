@@ -1,4 +1,4 @@
-# the text functions. make has no numbers and no data structures -- a
+# the text functions. make has no numbers and no data structures: a
 # list is a string with spaces in it, and these are all there is for
 # taking one apart.
 SRCS = src/main.c src/util.c src/net.c

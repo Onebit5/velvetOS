@@ -1,4 +1,4 @@
-; and one nobody wants. it defines a name nothing asks for -- and a
+; and one nobody wants. it defines a name nothing asks for, and a
 ; second `answer`, so a linker that pulls members in whether or not they
 ; resolve anything does not merely make a bigger program, it fails.
 ;

@@ -3,15 +3,15 @@
 # `include` and `-include`, because the dependency files a compiler
 # writes do not exist the first time round and a make that stopped
 # there could never build anything once; the conditionals, because a
-# build with two of anything in it -- two architectures, two ways of
-# being verbose -- has to be able to ask; `$(shell)`, because the list
+# build with two of anything in it (two architectures, two ways of
+# being verbose) has to be able to ask; `$(shell)`, because the list
 # of sources in this project is *found* rather than written down; and
 # `::`, because a target with two independent reasons to be rebuilt has
 # two recipes and not one.
 
 include config.mk
 
-# the forgiving kind. absent, it says nothing at all -- which is the
+# the forgiving kind. absent, it says nothing at all, which is the
 # whole reason it exists
 -include generated.mk
 
@@ -49,7 +49,7 @@ all: report
 	@echo "included= $(FROM_CONFIG) / $(FROM_GENERATED)"
 
 # two rules, two reasons, two recipes. touch one prerequisite and one of
-# them runs -- which is the whole difference from the single-colon kind,
+# them runs, which is the whole difference from the single-colon kind,
 # where a target has one recipe however many rules mention it
 report:: alpha.txt
 	@echo alpha is newer

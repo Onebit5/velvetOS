@@ -1,7 +1,7 @@
 ; the writable half. a linker gets .text and .rodata right long before it
 ; gets these, because these are the two that behave differently: .data
 ; has bytes and needs a segment that may be written to, and .bss has no
-; bytes at all -- it is an address and a length and a promise that the
+; bytes at all: it is an address and a length and a promise that the
 ; memory will be zero. a linker that writes it out anyway turns the
 ; kernel's zeroed globals into megabytes of file.
 bits 64
