@@ -13,5 +13,5 @@ it deliberately does not do. the map of the whole tree is in `layout
 
 the kernel's subsystems are the kernel's: ``arch/``, ``mm/``, ``sched/``,
 ``fs/``, ``drivers/``, ``net/``, ``lib/``, ``shell/`` and philemon in
-``boot/``, each with a page in ``kernel/docs/subsystems/``, beside
-``kernel/docs/syscalls.rst``, the abi the userland is written against.
+``boot/``, each with a page in velvet's ``docs/subsystems/``, beside its
+``docs/syscalls.rst``, the abi the userland is written against.

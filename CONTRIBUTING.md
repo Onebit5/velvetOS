@@ -9,10 +9,10 @@ is not what should.
 
 **first, the right repository.** this one is for what runs in ring 3 or builds the
 machine: the programs, the libc, the assembler, linker, make and `ar`, git, what goes on
-the medium, and which kernel `kernel/` is pinned to. everything under `kernel/` is
-velvet's, and a change to it is sent there. a change that needs both, a new
-syscall being the usual one, lands in velvet first and here once the pin moves to
-a kernel that has it.
+the medium, and which velvet release `kernel-release.mk` names. the kernel, which a
+build fetches into `obj/velvet/`, is velvet's, and a change to it is sent there. a change that needs both, a
+new syscall being the usual one, lands in velvet first, and here once a velvet
+release has it and `kernel-release.mk` moves to that release.
 
 the full guide is [`docs/contributing.rst`](docs/contributing.rst). it covers
 which repository a change goes to, the three ways to contribute, what a pull request has

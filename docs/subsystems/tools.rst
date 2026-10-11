@@ -8,11 +8,12 @@ nothing but an interpreter, which is the same constraint the machine itself
 is built under. see `python <../coding-style.rst>`_ for the style.
 
 the image builders and the kernel's own checkers are not here. they are the
-kernel's, in ``kernel/tools/``, because what they build and check is the
+kernel's, in its ``tools/``, because what they build and check is the
 kernel and the formats it reads: philemon's image, ext4 and fat32, the
 partition tables, the source stamp. this tree calls them where it needs them,
-``kernel/tools/mkboot.py`` to write ``velvetos.img`` and
-``kernel/tools/srccheck.py`` to read it back, and velvet's
+``mkboot.py`` to write ``velvetos.img`` and ``srccheck.py`` to read it back,
+out of the kernel's checkout (``obj/velvet/`` unless ``KERNEL_SRC`` names
+another), and velvet's
 ``docs/subsystems/tools.rst`` describes each.
 
 the second opinion
@@ -57,9 +58,9 @@ the static checks
 
 ``lint.py``
    the style guide, as much of it as a machine can hold. it lints what this
-   tree wrote: the kernel is a submodule, so ``git ls-files`` names it as one
-   commit rather than as its files, and the kernel's own lint holds it to the
-   kernel's copy of the guide.
+   tree wrote: the kernel is fetched into ``obj/velvet/``, which git here
+   ignores, so ``git ls-files`` does not name it at all, and the kernel's
+   own lint holds it to the kernel's copy of the guide.
 
 the boot test
 -------------

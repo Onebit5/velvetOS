@@ -33,7 +33,8 @@ applies to:
 does not apply to:
 
 - vendored or third-party code, wherever it lives
-- ``kernel/``, which is another repository with its own copy of this guide
+- the kernel in ``obj/velvet/``, which is another repository with its own
+  copy of this guide
 
 language and toolchain
 ----------------------

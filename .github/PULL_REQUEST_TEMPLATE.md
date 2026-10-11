@@ -7,8 +7,9 @@
 
 ## subsystem
 
-<!-- user, toolchain, git, tools, tests, build, docs, or kernel for a pin
-     move. a change to the kernel itself is sent to velvet. -->
+<!-- user, toolchain, git, tools, tests, build, docs, or kernel for a move
+     to another velvet release. a change to the kernel itself is sent to
+     velvet. -->
 
 ## checklist
 
@@ -17,8 +18,8 @@
 - [ ] `make lint` passes
 - [ ] `make test` passes
 - [ ] `make boottest` passes, if it changes what the machine does
-- [ ] `make selfboot` passes, if it touches the toolchain or moves the
-      kernel pin
+- [ ] `make selfboot` passes, if it touches the toolchain or moves
+      `kernel-release.mk`
 - [ ] a new feature brings its documentation in `docs/`
 - [ ] signed off with `git commit -s`
 - [ ] any model assistance disclosed with an `Assisted-by:` trailer

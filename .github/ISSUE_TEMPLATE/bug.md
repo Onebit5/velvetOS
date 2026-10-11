@@ -34,8 +34,8 @@ make run
 
 - version: velvetOS's is in `base/ramdisk/etc/os-release`, and the kernel's
   is the banner's `velvet v...`
-- commit: `git rev-parse --short HEAD`, and the kernel's from
-  `git submodule status`
+- commit: `git rev-parse --short HEAD`, and the kernel release, from
+  `grep KERNEL_ kernel-release.mk`
 - host: `uname -a`, and the versions of gcc and nasm
 - built with the machine's tools (`make`), or with the project's own
   (`make selfboot`)?

@@ -9,8 +9,8 @@ on:
 jobs:
   # the style guide, as far as a machine can hold it. no toolchain and no
   # build, so this is the fastest possible answer to a pull request, and it
-  # is the one that should come back first. the kernel is a submodule with
-  # its own lint, so it is not checked out here
+  # is the one that should come back first. the kernel has its own lint,
+  # and nothing here fetches it
   lint:
     runs-on: ubuntu-latest
 
@@ -24,11 +24,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # the kernel at the commit this tree pins, and nothing newer: what is
-      # under test is this system on the kernel it says it ships
+      # the kernel is fetched by the build, as the release
+      # kernel-release.mk names and nothing newer: what is under test is
+      # this system on the kernel it says it ships
       - uses: actions/checkout@v4
-        with:
-          submodules: true
 
       - name: install the toolchain
         run: |
@@ -41,7 +40,7 @@ jobs:
           gcc --version | head -1
           nasm -v
           qemu-system-x86_64 --version | head -1
-          git submodule status
+          grep '^KERNEL_' kernel-release.mk
 
       # the fast feedback first: these are ordinary linux programs and
       # they catch most of what a boot test would

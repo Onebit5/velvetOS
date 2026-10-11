@@ -15,7 +15,7 @@ ways nothing executes, ours carries no debug sections, and section
 order and padding are decisions rather than results.
 
 and the answer is not "close enough". it is **identical, except for the
-clock**: `persona`, in kernel/shell/shell.c, compiles `__TIME__` into
+clock**: `persona`, in the kernel's shell/shell.c, compiles `__TIME__` into
 the kernel, so two builds started in different seconds differ by the
 six bytes that says so, and nothing else. this checks that every
 difference is inside one of those timestamps, which is a stricter test

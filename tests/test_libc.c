@@ -49,8 +49,8 @@ void *libc_get_pages(long len)
     return p;
 }
 
-/* the kernel's, which is now the only one. */
-#include "../kernel/lib/string.c"
+/* the kernel's, which is now the only one, found in its checkout. */
+#include "lib/string.c"
 #include "../userland/libc/stdlib.c"
 
 /*

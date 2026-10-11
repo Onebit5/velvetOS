@@ -1,15 +1,16 @@
-# velvetOS build. needs gcc, nasm, make and python3, and the kernel
-# checked out in kernel/ (`git submodule update --init`). `make run` and
-# `make boottest` additionally need qemu.
+# velvetOS build. needs gcc, nasm, make, python3 and git: the kernel is
+# a velvet release, fetched into obj/velvet/ by the first build that
+# wants it. `make run` and `make boottest` additionally need qemu.
 #
 # targets:
 #   make              -> the bootable disk image, velvetos.img
 #   make kernel       -> the kernel, its bootloader and its build tools,
-#                        built out of kernel/ into bin/kernel/
+#                        built out of obj/velvet/ into bin/kernel/
 #   make userland     -> the programs and the library they link
 #   make run          -> boot it in qemu (CPUS=4, MEM=2G, QEMU_EXTRA=...)
 #   make test         -> the host suites and every checker
-#   make kernel-test  -> the kernel's own suites, run in kernel/
+#   make kernel-test  -> the kernel's own suites, run in its checkout
+#   make kernel-update -> move kernel-release.mk to the newest velvet release
 #   make boottest     -> boot it headless and drive the shell over serial
 #   make selfboot     -> and boot the kernel our own tools built
 #   make clean
@@ -38,17 +39,54 @@ CC   := gcc
 LD   := ld
 
 #
-# the kernel is a project of its own, velvet, and lives in kernel/
-# as a git submodule with its own makefile. this tree asks it for what a
-# system needs -- the kernel, philemon, and the C tools that write disks
-# and images -- and says where to put them, so a build here leaves
-# nothing in the kernel's checkout and a build there never sees anything
-# of this one's.
+# the kernel is a project of its own, velvet, and this tree does not
+# carry it. kernel-release.mk names one release of it by its version,
+# and tools/kernel.py clones that release's tag into obj/velvet/ before
+# anything below reads a file of it, and again only when the version
+# changes. it is done here, while the makefile is read, because half of
+# what follows finds the kernel's files with $(shell find) at that
+# moment, and a kernel fetched later would be a kernel those lists had
+# already missed.
+#
+# obj/, because the clone is something a build makes, like everything
+# else in there: git here never sees it, and `make clean` throws it
+# away with the rest.
+#
+#   make KERNEL_URL=../velvet   the same release, cloned out of a local copy
+#   make KERNEL_SRC=../velvet   that checkout as it is, unchecked, for
+#                               working on the kernel and the system at once
+#
+# nothing that does not read the kernel asks for it, so `make clean` and
+# `make lint` work on a tree that has never fetched one
+include kernel-release.mk
+
+KERNEL_RELEASE := obj/velvet
+KERNEL_SRC ?= $(KERNEL_RELEASE)
+
+ifneq ($(if $(MAKECMDGOALS),$(filter-out clean distclean lint kernel-update,$(MAKECMDGOALS)),all),)
+ifeq ($(KERNEL_SRC),$(KERNEL_RELEASE))
+KERNEL_FOUND := $(shell python3 tools/kernel.py fetch '$(KERNEL_SRC)' \
+                  '$(KERNEL_URL)' '$(KERNEL_VERSION)' >&2; echo $$?)
+else
+KERNEL_FOUND := $(shell python3 tools/kernel.py local '$(KERNEL_SRC)' \
+                  '$(KERNEL_VERSION)' >&2; echo $$?)
+endif
+ifneq ($(KERNEL_FOUND),0)
+$(error $(KERNEL_SRC) holds no kernel this tree will build, for the reason above)
+endif
+endif
+
+#
+# with the kernel in $(KERNEL_SRC), this tree asks it for what a system
+# needs (the kernel, philemon, and the C tools that write disks and
+# images) and says where to put them, so a build here leaves nothing in
+# the kernel's checkout and a build there never sees anything of this
+# one's.
 #
 # SOURCE is the one thing it is told that it could not work out for
 # itself. the kernel carries the hash of the source shipped beside it,
-# and what ships beside it here is velvetOS, kernel/ included, rather
-# than kernel/ alone
+# and what ships beside it here is velvetOS with the kernel in it,
+# rather than the kernel alone
 KERNEL := velvet
 KBIN   := bin/kernel
 KOBJ   := obj/kernel
@@ -56,7 +94,7 @@ KT     := $(KBIN)/tests
 
 SOURCE := bin/source.tar
 
-KMAKE := $(MAKE) --no-print-directory -C kernel \
+KMAKE := $(MAKE) --no-print-directory -C $(KERNEL_SRC) \
          BINDIR=$(CURDIR)/$(KBIN) OBJROOT=$(CURDIR)/$(KOBJ) \
          SOURCE=$(CURDIR)/$(SOURCE)
 
@@ -75,17 +113,23 @@ all: $(BOOTIMG)
 kernel: $(KERNEL_OUT)
 
 $(KERNEL_OUT) &: $(SOURCE) FORCE
-	@test -f kernel/GNUmakefile || { \
-	  echo "  kernel/ is empty: git submodule update --init"; exit 1; }
 	@$(KMAKE) kernel philemon tools
 
 FORCE:
 
 # the kernel's own suites, in the kernel's own checkout, the way its CI
-# runs them. not part of `make test`: a pinned kernel has passed these
-# already, in velvet, before it was pinned
+# runs them. not part of `make test`: a released kernel has passed these
+# already, in velvet, before it was released
 kernel-test:
-	@$(MAKE) --no-print-directory -C kernel test
+	@$(MAKE) --no-print-directory -C $(KERNEL_SRC) test
+
+# the newest stable release of velvet, written into kernel-release.mk and
+# fetched. it changes one file and commits nothing: the commit that moves
+# the system to a new kernel is somebody's decision, and it is the one
+# line in the log that says every build after it ships that kernel
+.PHONY: kernel-update
+kernel-update:
+	@python3 tools/kernel.py update '$(KERNEL_RELEASE)' '$(KERNEL_URL)'
 
 #
 # a ring 3 program is built much like the kernel -- freestanding, no
@@ -97,14 +141,14 @@ UCFLAGS := -Wall -Wextra -std=gnu11 -O1 \
 	-ffreestanding -fno-stack-protector -fno-stack-check -fno-pic \
 	-fno-omit-frame-pointer \
 	-m64 -mno-80387 -mno-mmx -mno-sse -mno-sse2 -mno-red-zone -Iuserland \
-	-Iuserland/libc -Ikernel/include
+	-Iuserland/libc -I$(KERNEL_SRC)/include
 
 # what a program and the kernel agree on: the syscall numbers, the structs
 # the calls hand back, signals, keys and terminal flags. they are the
-# kernel's, in kernel/include/uapi/velvet/, and userland/syscall.h
+# kernel's, in its include/uapi/velvet/, and userland/syscall.h
 # includes them rather than keeping a copy, so everything that includes
 # that header is rebuilt when the pin moves to a kernel that changed them
-UAPI := $(wildcard kernel/include/uapi/velvet/*.h)
+UAPI := $(wildcard $(KERNEL_SRC)/include/uapi/velvet/*.h)
 
 AR ?= ar
 ULDFLAGS := -nostdlib -static -T toolchain/linker.ld
@@ -163,31 +207,32 @@ obj/libc_%.o: userland/libc/%.c $(LIBC_HDRS) userland/syscall.h $(UAPI)
 # the string functions, from the kernel's copy of them -- which is now
 # the only copy. compiled twice: freestanding up there, hosted here.
 #
-# the kernel being a submodule changes none of this. kernel/ is always
-# the kernel this system is pinned to, so the library is built from the
-# same lines the kernel was, and moving the pin moves both together
-obj/libc_string.o: kernel/lib/string.c kernel/include/velvet/string.h
+# the kernel being fetched changes none of this. $(KERNEL_SRC) is
+# always the kernel this system is built with, so the library is built
+# from the same lines the kernel was, and moving the pin moves both
+# together
+obj/libc_string.o: $(KERNEL_SRC)/lib/string.c $(KERNEL_SRC)/include/velvet/string.h
 	@mkdir -p $(@D)
 	$(CC) $(UCFLAGS) -c $< -o $@
 
-obj/libc_hash.o: kernel/lib/hash.c kernel/include/velvet/hash.h
+obj/libc_hash.o: $(KERNEL_SRC)/lib/hash.c $(KERNEL_SRC)/include/velvet/hash.h
 	@mkdir -p $(@D)
 	$(CC) $(UCFLAGS) -c $< -o $@
 
 # and the same for deflate, which a ring 3 program will need before it
 # can read a git object -- and which being in here at all proves it
 # compiles freestanding, with no libc of its own underneath it
-obj/libc_inflate.o: kernel/lib/inflate.c kernel/include/velvet/deflate.h
+obj/libc_inflate.o: $(KERNEL_SRC)/lib/inflate.c $(KERNEL_SRC)/include/velvet/deflate.h
 	@mkdir -p $(@D)
 	$(CC) $(UCFLAGS) -c $< -o $@
 
-obj/libc_deflate.o: kernel/lib/deflate.c kernel/include/velvet/deflate.h
+obj/libc_deflate.o: $(KERNEL_SRC)/lib/deflate.c $(KERNEL_SRC)/include/velvet/deflate.h
 	@mkdir -p $(@D)
 	$(CC) $(UCFLAGS) -c $< -o $@
 
 # the date conversion, so a commit can carry one. there is no clock
 # syscall; a file's timestamp and this are between them enough
-obj/libc_epoch.o: kernel/lib/epoch.c kernel/include/velvet/epoch.h
+obj/libc_epoch.o: $(KERNEL_SRC)/lib/epoch.c $(KERNEL_SRC)/include/velvet/epoch.h
 	@mkdir -p $(@D)
 	$(CC) $(UCFLAGS) -c $< -o $@
 
@@ -282,20 +327,27 @@ $(RAMDISK): $(USER_PROGS) $(RAMDISK_FILES)
 # build it.
 #
 # and the kernel's files go in with this tree's, because a disk that can
-# rebuild the system has to be able to rebuild the kernel too. they are
-# found in kernel/ rather than asked of git, so a tarball of this tree
-# builds the same archive as a checkout of it; what is left out of there
-# is what the kernel's own build would leave out, plus the file a
-# submodule checkout keeps its git pointer in
+# rebuild the system has to be able to rebuild the kernel too. they go in
+# under kernel/, wherever this build found them, so the archive says the
+# same thing about a kernel whether it was fetched or worked on beside
+# this tree. they are found rather than asked of git, so a tarball of
+# the kernel builds the same archive as a checkout of it; what is left
+# out is what the kernel's own build would leave out, plus the git
+# history the clone keeps and the caches python leaves in it.
+#
+# KERNEL_FILES are named from inside the checkout, which is what lets
+# them be put under kernel/ at all
 SOURCE_FILES := GNUmakefile README.md CHANGELOG.md ROADMAP.md \
-                LICENSE .gitignore .gitmodules \
+                LICENSE .gitignore kernel-release.mk \
                 CONTRIBUTING.md CODE_OF_CONDUCT.md \
                 $(shell find .github userland toolchain tools tests docs -type f | sort) \
                 $(shell find base/ramdisk base/diskroot -type f \
-                        -not -path 'base/ramdisk/bin/*' | sort) \
-                $(shell find kernel -path kernel/.git -prune \
-                        -o -path kernel/bin -prune -o -path kernel/obj -prune \
-                        -o -name '*.img' -prune -o -type f -print 2>/dev/null | sort)
+                        -not -path 'base/ramdisk/bin/*' | sort)
+KERNEL_FILES := $(shell cd $(KERNEL_SRC) 2>/dev/null && \
+                  find . -path ./.git -prune -o -path ./bin -prune \
+                         -o -path ./obj -prune -o -name __pycache__ -prune \
+                         -o -name '*.img' -prune -o -type f -print \
+                  | sed 's,^\./,,' | sort)
 
 # --sort=name and a fixed mtime for the same reason the ramdisk has
 # them: two builds of the same tree must produce the same bytes, or the
@@ -309,19 +361,26 @@ SOURCE_FILES := GNUmakefile README.md CHANGELOG.md ROADMAP.md \
 # depend on whether anybody had built anything yet. it states what it
 # wants instead: everyone may read, only the owner may write, and
 # whatever was executable stays executable
-$(SOURCE): $(SOURCE_FILES)
+#
+# the kernel is a second tar appended to the first rather than more names
+# in it, because -C and --transform are what put its files under kernel/
+# and they would rename this tree's files too
+$(SOURCE): $(SOURCE_FILES) $(addprefix $(KERNEL_SRC)/,$(KERNEL_FILES))
 	@mkdir -p $(@D)
-	@echo '  TAR     $@ ($(words $(SOURCE_FILES)) files)'
+	@echo '  TAR     $@ ($(words $(SOURCE_FILES) $(KERNEL_FILES)) files)'
 	@tar --format=ustar --sort=name --owner=0 --group=0 --numeric-owner \
 		--mtime=@0 --mode='u+rw,go+r,go-w' -cf $@ $(SOURCE_FILES)
+	@tar --format=ustar --sort=name --owner=0 --group=0 --numeric-owner \
+		--mtime=@0 --mode='u+rw,go+r,go-w' -rf $@ -C $(KERNEL_SRC) \
+		--transform 's,^,kernel/,' $(KERNEL_FILES)
 
 # the image is philemon's format, so it is written by philemon's tool,
-# which lives with philemon in kernel/. what goes in it is this system's:
+# which lives with philemon in the kernel. what goes in it is this system's:
 # its ramdisk and its source
 $(BOOTIMG): $(KBIN)/boot/philemon.bin $(KBIN)/boot/philemon64.bin \
-            $(KBIN)/$(KERNEL) $(RAMDISK) $(SOURCE) kernel/tools/mkboot.py \
-            kernel/boot/philemon.inc kernel/include/velvet/philemon.h
-	@python3 kernel/tools/mkboot.py $@ $(KBIN)/boot/philemon.bin \
+            $(KBIN)/$(KERNEL) $(RAMDISK) $(SOURCE) $(KERNEL_SRC)/tools/mkboot.py \
+            $(KERNEL_SRC)/boot/philemon.inc $(KERNEL_SRC)/include/velvet/philemon.h
+	@python3 $(KERNEL_SRC)/tools/mkboot.py $@ $(KBIN)/boot/philemon.bin \
 		$(KBIN)/boot/philemon64.bin $(KBIN)/$(KERNEL) $(RAMDISK) $(SOURCE)
 
 bootimg: $(BOOTIMG)
@@ -379,15 +438,15 @@ run: $(BOOTIMG) $(DISK)
 # it goes in, and that is deliberate: 8 MiB of filesystem inside 24 MiB
 # of partition is exactly the situation `resize` exists for, so `make
 # run` boots a machine with something to grow
-$(DISK): $(KT)/mkext4 kernel/tools/mkfat.py kernel/tools/mkdisk.py \
+$(DISK): $(KT)/mkext4 $(KERNEL_SRC)/tools/mkfat.py $(KERNEL_SRC)/tools/mkdisk.py \
          $(shell find base/diskroot -type f 2>/dev/null)
 	@mkdir -p bin/workroot
 	@echo 'somewhere to work that is not the system' > bin/workroot/readme.txt
 	@$(KT)/mkext4 bin/diskroot.img base/diskroot 32 >/dev/null
 	@$(KT)/mkext4 bin/work.img bin/workroot 8 work >/dev/null
 	@dd if=/dev/zero of=bin/work.img bs=1M count=0 seek=24 2>/dev/null
-	@python3 kernel/tools/mkfat.py  bin/compendium.img base/diskroot 24 >/dev/null
-	@python3 kernel/tools/mkdisk.py $@ gpt bin/diskroot.img:linux bin/work.img:work \
+	@python3 $(KERNEL_SRC)/tools/mkfat.py  bin/compendium.img base/diskroot 24 >/dev/null
+	@python3 $(KERNEL_SRC)/tools/mkdisk.py $@ gpt bin/diskroot.img:linux bin/work.img:work \
 		bin/compendium.img:fat32
 
 .PHONY: disk
@@ -398,11 +457,11 @@ disk:
 #
 # the host suites for what this tree wrote: the library, the helpers the
 # programs share, git's object store, and the assembler. the kernel's
-# suites are the kernel's, in kernel/tests/, and `make kernel-test` runs
+# suites are the kernel's, in its tests/, and `make kernel-test` runs
 # them.
 
 HOSTCC    := gcc
-HOSTFLAGS := -std=gnu11 -Wall -Wextra -Wno-stringop-truncation -Wno-stringop-overread -g -DVELVETOS_HOSTED -Ikernel/include -Ikernel/arch/x86_64/include -DVELVETOS_ARCH_X86_64
+HOSTFLAGS := -std=gnu11 -Wall -Wextra -Wno-stringop-truncation -Wno-stringop-overread -g -DVELVETOS_HOSTED -I$(KERNEL_SRC)/include -I$(KERNEL_SRC)/arch/x86_64/include -DVELVETOS_ARCH_X86_64
 
 TEST_BINS := bin/tests/args bin/tests/libc bin/tests/textbuf \
              bin/tests/difflib bin/tests/git
@@ -413,8 +472,9 @@ bin/tests/args:     tests/test_args.c     userland/args.c
 # `libc_get_pages` is the one seam -- what is tested is the real
 # allocator with only the source of memory replaced
 bin/tests/libc:     tests/test_libc.c     userland/libc/stdlib.c \
-                    userland/libc/format.c
+                    userland/libc/format.c $(KERNEL_SRC)/lib/string.c
 bin/tests/libc:     SRCS = tests/test_libc.c
+bin/tests/libc:     HOSTFLAGS += -I$(KERNEL_SRC)
 # what an editor edits. an editor is a drawing loop around a data
 # structure: the drawing needs a terminal and the structure needs
 # nothing, and the structure is the half where a bug eats a file
@@ -427,8 +487,8 @@ bin/tests/difflib:  tests/test_difflib.c  userland/difflib.c
 # tool tools/gitcheck.py uses to build a whole repository -- which real
 # git is then asked to read
 bin/tests/git:      tests/test_git.c      userland/gitobj.c userland/gitio_host.c \
-                    kernel/lib/hash.c kernel/lib/inflate.c \
-                    kernel/lib/deflate.c
+                    $(KERNEL_SRC)/lib/hash.c $(KERNEL_SRC)/lib/inflate.c \
+                    $(KERNEL_SRC)/lib/deflate.c
 bin/tests/git:      HOSTFLAGS += -Iuserland
 
 # not a suite that checks itself -- it is the assembler, built as a
@@ -471,7 +531,7 @@ bin/tests/asm: tests/test_asm.c toolchain/asmlib.c toolchain/asmlib.h \
 # passing -- which is the worst possible failure for a test suite, since
 # it is indistinguishable from the change being harmless.
 TEST_HEADERS := $(shell find userland toolchain tools -name '*.h' 2>/dev/null) \
-                $(shell find kernel/include -name '*.h' 2>/dev/null)
+                $(shell find $(KERNEL_SRC)/include -name '*.h' 2>/dev/null)
 $(TEST_BINS): $(TEST_HEADERS)
 
 # SRCS overrides what gets compiled, for tests that #include a .c file
@@ -490,10 +550,10 @@ $(TEST_BINS):
 # sixteen bits and that file uses the whole of it
 ASM_CHECKED := tests/asm/basic.asm tests/asm/data.asm tests/asm/jumps.asm \
                tests/asm/memory.asm tests/asm/relocs.asm tests/asm/real.asm \
-               kernel/arch/x86_64/switch.asm \
-               kernel/arch/x86_64/syscall.asm \
-               kernel/arch/x86_64/isr.asm \
-               kernel/arch/x86_64/trampoline.asm
+               $(KERNEL_SRC)/arch/x86_64/switch.asm \
+               $(KERNEL_SRC)/arch/x86_64/syscall.asm \
+               $(KERNEL_SRC)/arch/x86_64/isr.asm \
+               $(KERNEL_SRC)/arch/x86_64/trampoline.asm
 
 # the assembler is not a suite that checks itself: it is a program, and
 # the only thing that can judge it is another assembler. so it gets a
@@ -548,8 +608,13 @@ toolchain: bin/tests/asm bin/tests/link bin/tests/make
 # built: identical, except for the six bytes of __TIME__ that say when
 # each of them was compiled
 .PHONY: selfhost
+#
+# our make takes no variables on its command line, so where the kernel is
+# goes to it in a file kernel.mk includes
 selfhost: bin/tests/make bin/tests/asm bin/tests/link $(KERNEL_OUT) \
           $(RAMDISK) $(SOURCE)
+	@mkdir -p obj/toolchain
+	@echo 'KSRC = $(KERNEL_SRC)' > obj/toolchain/kernel-src.mk
 	@./bin/tests/make -f tests/toolchain/kernel.mk
 	@python3 tools/selfcheck.py
 
@@ -558,7 +623,7 @@ selfhost: bin/tests/make bin/tests/asm bin/tests/link $(KERNEL_OUT) \
 # boottest rather than part of the suite
 .PHONY: selfboot
 selfboot: selfhost $(KT)/mkext4
-	./tools/boottest.sh bin/toolchain/velvetos.img
+	KERNEL_SRC=$(KERNEL_SRC) ./tools/boottest.sh bin/toolchain/velvetos.img
 
 .PHONY: makecheck
 makecheck: bin/tests/make
@@ -581,7 +646,7 @@ KERNEL_OBJECTS := $(KOBJ)/x86_64/kernel.objects
 
 .PHONY: kernelcheck
 kernelcheck: bin/tests/link $(KERNEL_OUT)
-	@python3 tools/linkcheck.py kernel/arch/x86_64/linker.ld $$(cat $(KERNEL_OBJECTS))
+	@python3 tools/linkcheck.py $(KERNEL_SRC)/arch/x86_64/linker.ld $$(cat $(KERNEL_OBJECTS))
 
 .PHONY: archeck
 archeck: bin/tests/ar bin/tests/link
@@ -620,7 +685,7 @@ test: $(KERNEL_OUT) $(BOOTIMG) $(USER_PROGS) $(RAMDISK) $(TEST_BINS) \
 		echo 'FAILED'; echo "$$out" | sed 's/^/    /'; fail=1; \
 	fi; \
 	printf '  %-10s ' kernelcheck; \
-	if out=$$(python3 tools/linkcheck.py kernel/arch/x86_64/linker.ld \
+	if out=$$(python3 tools/linkcheck.py $(KERNEL_SRC)/arch/x86_64/linker.ld \
 			$$(cat $(KERNEL_OBJECTS)) 2>&1); then \
 		echo 'ok'; \
 	else \
@@ -639,7 +704,8 @@ test: $(KERNEL_OUT) $(BOOTIMG) $(USER_PROGS) $(RAMDISK) $(TEST_BINS) \
 		echo 'FAILED'; echo "$$out" | sed 's/^/    /'; fail=1; \
 	fi; \
 	printf '  %-10s ' srccheck; \
-	if out=$$(python3 kernel/tools/srccheck.py $(BOOTIMG) 2>&1); then \
+	if out=$$(python3 $(KERNEL_SRC)/tools/srccheck.py \
+			--with kernel=$(KERNEL_SRC) $(BOOTIMG) 2>&1); then \
 		echo 'ok'; \
 	else \
 		echo 'FAILED'; echo "$$out" | sed 's/^/    /'; fail=1; \
@@ -668,8 +734,9 @@ test: $(KERNEL_OUT) $(BOOTIMG) $(USER_PROGS) $(RAMDISK) $(TEST_BINS) \
 # the shape of a multi-line comment, the function brace, dashes and first
 # person in prose, tabs, the `//` rule, and a marker with an owner. the
 # whole tree by default, or the files named in FILES while working on one.
-# the kernel is not in the whole tree: it is a submodule, and its own
-# `make lint` holds it to its own copy of the guide.
+# the kernel is not in the whole tree: it is fetched into obj/velvet/,
+# which git here ignores, and its own `make lint` holds it to its own
+# copy of the guide.
 #
 #   make lint                       the whole tree
 #   make lint FILES=userland/ls.c   just that file
@@ -683,8 +750,10 @@ lint:
 # boot the image and drive the shell over serial. needs qemu
 .PHONY: boottest
 boottest: $(BOOTIMG) $(KT)/mkext4
-	./tools/boottest.sh $(BOOTIMG)
+	KERNEL_SRC=$(KERNEL_SRC) ./tools/boottest.sh $(BOOTIMG)
 
+# obj/ is where the release was fetched to, so the next build fetches
+# it again
 clean:
 	rm -rf bin obj
 

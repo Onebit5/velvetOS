@@ -3,8 +3,8 @@ the toolchain
 
 velvetOS builds its own kernel with its own tools. the assembler, the linker,
 ``make`` and ``ar`` live in ``toolchain/``, are built as host binaries by
-``make toolchain``, and build the kernel in ``kernel/``, velvet, which
-this tree carries as a submodule. gcc is the only program left in the chain
+``make toolchain``, and build the kernel, velvet, out of the release this
+tree fetches into ``obj/velvet/``. gcc is the only program left in the chain
 that is not this project's.
 
 the one thing that makes any of it checkable is comparing against the real
@@ -205,10 +205,10 @@ velvet's ``docs/subsystems/tools.rst`` describes each.
 hashes and deflate
 ------------------
 
-``kernel/lib/hash.c`` and ``kernel/lib/deflate.c`` are the kernel's, but
+``lib/hash.c`` and ``lib/deflate.c`` are the kernel's, but
 they are prerequisites for git rather than features of the kernel: a git
 repository is addressed by the sha-1 of what is in it, and every object on
-disk is a zlib stream. ``libc.a`` compiles both out of ``kernel/`` rather than
+disk is a zlib stream. ``libc.a`` compiles both out of its checkout rather than
 keeping copies, so git uses the same lines the kernel does, checked once.
 velvet's ``docs/subsystems/lib.rst`` says what each sum is for, and its
 ``hashcheck.py`` and ``zlibcheck.py`` how they are checked (against python,
@@ -256,8 +256,8 @@ the self-hosted kernel
 
 ``make selfhost`` builds the kernel with this project's make, assembler and
 linker. ``tests/toolchain/kernel.mk`` is a real makefile rather than a
-demonstration; it reads what the kernel is made of out of
-``kernel/sources.mk`` with ``include``, finds the files with ``$(shell
+demonstration; it reads what the kernel is made of out of the kernel's
+``sources.mk`` with ``include``, finds the files with ``$(shell
 find)`` in the same order the kernel's own makefile does, reads the
 dependency files gcc writes with ``-include``, and runs the same two-pass
 symbol-table dance the ordinary build does. the order is not tidiness: the

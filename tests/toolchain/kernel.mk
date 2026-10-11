@@ -24,6 +24,14 @@
 #   ifdef              two ways of being told what happened
 #   ::                 below, on the one target that has two reasons
 
+# where the kernel's checkout is: the release the GNUmakefile fetches,
+# unless it was told to build another. our make takes no variables on its
+# command line, so the GNUmakefile writes the answer into
+# obj/toolchain/kernel-src.mk before it runs this, and the include is
+# optional so that this still runs on its own
+KSRC = obj/velvet
+-include obj/toolchain/kernel-src.mk
+
 CC    = gcc
 ASM   = bin/tests/asm
 LINK  = bin/tests/link
@@ -38,33 +46,33 @@ BIN   = bin/toolchain
 # *tools* changed and nothing else did
 CFLAGS = -g -Wall -Wextra -std=gnu11 -ffreestanding -fno-stack-protector \
          -fno-stack-check -fno-lto -fno-PIC -MMD -MP \
-         -Ikernel/include -Ikernel/arch/x86_64/include -I$(OUT)/include \
+         -I$(KSRC)/include -I$(KSRC)/arch/x86_64/include -I$(OUT)/include \
          -fno-omit-frame-pointer -DVELVETOS_ARCH_X86_64 \
          -m64 -march=x86-64 -mno-80387 -mno-mmx -mno-sse -mno-sse2 \
          -mno-red-zone -mcmodel=kernel
 
 # what the kernel is made of, in the kernel's own words. the list lives
-# in kernel/sources.mk and is read here rather than copied, and walked in
+# in its sources.mk and is read here rather than copied, and walked in
 # the same order the kernel's makefile walks it -- which matters, because
 # the order the objects are linked in decides where every function lands,
 # and the comparison at the end is byte for byte
-include kernel/sources.mk
+include $(KSRC)/sources.mk
 
-CSRC = $(shell find $(addprefix kernel/,$(KERNEL_PORTABLE)) -name '*.c') \
-       $(shell find kernel/arch/x86_64 -name '*.c')
-ASMSRC = $(shell find $(addprefix kernel/,$(KERNEL_PORTABLE)) \
-                      kernel/arch/x86_64 -name '*.asm' -not -name 'trampoline.asm')
+CSRC = $(shell find $(addprefix $(KSRC)/,$(KERNEL_PORTABLE)) -name '*.c') \
+       $(shell find $(KSRC)/arch/x86_64 -name '*.c')
+ASMSRC = $(shell find $(addprefix $(KSRC)/,$(KERNEL_PORTABLE)) \
+                      $(KSRC)/arch/x86_64 -name '*.asm' -not -name 'trampoline.asm')
 
 # the version, from the first three lines of the kernel's GNUmakefile,
 # where it is written once. read with sed rather than by including that
 # makefile, which is GNU make's and says things ours does not, and
 # written into a header of this build's own, so that nothing the kernel
 # is compiled from here was produced by the other build
-KERNELRELEASE = $(shell sed -n '1,3s/^[A-Z]* = //p' kernel/GNUmakefile | paste -sd.)
+KERNELRELEASE = $(shell sed -n '1,3s/^[A-Z]* = //p' $(KSRC)/GNUmakefile | paste -sd.)
 VERSION_H = $(OUT)/include/generated/version.h
 
-OBJ = $(patsubst kernel/%.c,$(OUT)/%.c.o,$(CSRC)) \
-      $(patsubst kernel/%.asm,$(OUT)/%.asm.o,$(ASMSRC)) \
+OBJ = $(patsubst $(KSRC)/%.c,$(OUT)/%.c.o,$(CSRC)) \
+      $(patsubst $(KSRC)/%.asm,$(OUT)/%.asm.o,$(ASMSRC)) \
       $(OUT)/arch/x86_64/trampoline.c.o $(OUT)/srcstamp.o
 
 all: $(BIN)/velvetos.img
@@ -79,18 +87,18 @@ all: $(BIN)/velvetos.img
 # the linking and the C gensyms reading the symbol table our linker
 # wrote. that second part is the one worth watching: a kernel linked
 # without a symbol table boots perfectly and cannot say where it died
-$(BIN)/velvet: $(OBJ) kernel/arch/x86_64/linker.ld $(GENSYMS) $(LINK)
+$(BIN)/velvet: $(OBJ) $(KSRC)/arch/x86_64/linker.ld $(GENSYMS) $(LINK)
 	@mkdir -p $(BIN) $(OUT)
 	@echo '  GENSYMS stub'
 	@$(GENSYMS) --stub > $(OUT)/ksyms.c
 	@$(CC) $(CFLAGS) -c $(OUT)/ksyms.c -o $(OUT)/ksyms.o
 	@echo '  LINK    pass 1 (ours)'
-	@$(LINK) -T kernel/arch/x86_64/linker.ld -o $@.pass1 $(OBJ) $(OUT)/ksyms.o
+	@$(LINK) -T $(KSRC)/arch/x86_64/linker.ld -o $@.pass1 $(OBJ) $(OUT)/ksyms.o
 	@echo '  GENSYMS from a kernel our linker wrote'
 	@$(GENSYMS) $@.pass1 > $(OUT)/ksyms.c
 	@$(CC) $(CFLAGS) -c $(OUT)/ksyms.c -o $(OUT)/ksyms.o
 	@echo '  LINK    pass 2 (ours)'
-	@$(LINK) -T kernel/arch/x86_64/linker.ld -o $@ $(OBJ) $(OUT)/ksyms.o
+	@$(LINK) -T $(KSRC)/arch/x86_64/linker.ld -o $@ $(OBJ) $(OUT)/ksyms.o
 	@$(GENSYMS) --check $@ $(OUT)/ksyms.c
 
 # the image. philemon is taken from the ordinary build: a bootloader is
@@ -101,16 +109,16 @@ $(BIN)/velvet: $(OBJ) kernel/arch/x86_64/linker.ld $(GENSYMS) $(LINK)
 # quietly building less of the image than it looks like
 $(BIN)/velvetos.img: $(BIN)/velvet bin/kernel/boot/philemon.bin \
                      bin/kernel/boot/philemon64.bin bin/ramdisk.tar bin/source.tar
-	@MKBOOT_ROOT=kernel $(MKBOOT) $@ bin/kernel/boot/philemon.bin \
+	@MKBOOT_ROOT=$(KSRC) $(MKBOOT) $@ bin/kernel/boot/philemon.bin \
 		bin/kernel/boot/philemon64.bin \
 		$(BIN)/velvet bin/ramdisk.tar bin/source.tar
 
 
-$(VERSION_H): kernel/GNUmakefile
+$(VERSION_H): $(KSRC)/GNUmakefile
 	@mkdir -p $(@D)
 	@echo '#define VELVET_VERSION "$(KERNELRELEASE)"' > $@
 
-$(OUT)/%.c.o: kernel/%.c $(VERSION_H)
+$(OUT)/%.c.o: $(KSRC)/%.c $(VERSION_H)
 	@mkdir -p $(@D)
 	@$(CC) $(CFLAGS) -c $< -o $@
 
@@ -118,14 +126,14 @@ $(OUT)/%.c.o: kernel/%.c $(VERSION_H)
 # prerequisite like the source is: the tools are what is under test
 # here, so a fixed assembler that left last build's objects standing
 # would be compared against nasm without ever having been run
-$(OUT)/%.asm.o: kernel/%.asm $(ASM)
+$(OUT)/%.asm.o: $(KSRC)/%.asm $(ASM)
 	@mkdir -p $(@D)
 	@$(ASM) -o $@ $<
 
 # and the trampoline, which is not linked at all: it runs in real mode
 # at a fixed low address, so it is assembled flat and carried into the
 # kernel as bytes
-$(OUT)/arch/x86_64/trampoline.bin: kernel/arch/x86_64/trampoline.asm $(ASM)
+$(OUT)/arch/x86_64/trampoline.bin: $(KSRC)/arch/x86_64/trampoline.asm $(ASM)
 	@mkdir -p $(@D)
 	@$(ASM) $< > $@
 
@@ -141,7 +149,7 @@ $(OUT)/arch/x86_64/trampoline.c.o: $(OUT)/arch/x86_64/trampoline.c
 # is neither ours nor the compiler's
 $(OUT)/srcstamp.c: bin/source.tar
 	@mkdir -p $(@D)
-	@python3 kernel/tools/srcstamp.py bin/source.tar > $@
+	@python3 $(KSRC)/tools/srcstamp.py bin/source.tar > $@
 
 $(OUT)/srcstamp.o: $(OUT)/srcstamp.c
 	@$(CC) $(CFLAGS) -c $< -o $@

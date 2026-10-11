@@ -6,8 +6,8 @@
 # shell cant tell the difference between a keyboard and a pipe.
 #
 # this is the whole system: the kernel, and the programs on the ramdisk
-# running in ring 3 on top of it. the kernel's own boot test, in
-# kernel/tools/, checks what the kernel can show with no programs at all,
+# running in ring 3 on top of it. the kernel's own boot test, in its
+# tools/, checks what the kernel can show with no programs at all,
 # and this is the half only a system with programs on it can check.
 #
 #   usage: tools/boottest.sh [velvetos.img]
@@ -36,15 +36,18 @@ WORKIMG="$(mktemp -t velvetos-boottest-work-XXXXXX.img)"
 EMPTY="$(mktemp -d -t velvetos-boottest-XXXXXX)"
 trap 'rm -rf "$DISK" "$SYSIMG" "$WORKIMG" "$EMPTY"' EXIT
 
-# the formatter is the kernel's, built by `make kernel` into bin/kernel/
+# the formatter is the kernel's, built by `make kernel` into bin/kernel/,
+# and the partitioner is the kernel's too, in its checkout, which the
+# makefile names in KERNEL_SRC
 MKEXT4="$HERE/../bin/kernel/tests/mkext4"
+KSRC="${KERNEL_SRC:-$HERE/../obj/velvet}"
 "$MKEXT4" "$SYSIMG" "$HERE/../base/diskroot" 48 >/dev/null
 echo "somewhere to work that is not the system" > "$EMPTY/readme.txt"
 "$MKEXT4" "$WORKIMG" "$EMPTY" 8 work >/dev/null
 # and the room to grow into, which is a partition longer than the
 # filesystem in it rather than anything the filesystem knows about
 dd if=/dev/zero of="$WORKIMG" bs=1M count=0 seek=24 2>/dev/null
-python3 "$HERE/../kernel/tools/mkdisk.py" "$DISK" mbr \
+python3 "$KSRC/tools/mkdisk.py" "$DISK" mbr \
         "$SYSIMG:linux" "$WORKIMG:linux" >/dev/null
 # kept rather than thrown away. a boot test that fails and deletes the
 # only record of why is a boot test you debug by running it again and

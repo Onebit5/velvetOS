@@ -259,10 +259,10 @@ def check_file(path, strict):
 def git_files():
     """the C sources, and the python and shell tools held to the same rules.
 
-    every C file git tracks is this project's own. a submodule is one
-    entry naming a commit rather than the files in it, so kernel/ is not
-    in this list: the kernel is held to its own copy of the guide, by its
-    own lint, in its own repository."""
+    every C file git tracks is this project's own. the kernel is a release
+    fetched into obj/velvet/, which git here ignores, so none of it is in
+    this list: it is held to its own copy of the guide, by its own lint, in its
+    own repository."""
     out = subprocess.run(['git', 'ls-files'], capture_output=True, text=True)
     keep = []
     for f in out.stdout.split():

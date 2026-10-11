@@ -3,18 +3,16 @@ layout
 
 the tree, and what each part of it is for.
 
-the top level says what the system is: the kernel in ``kernel/``, what runs
-on it in ``userland/``, what builds it in ``toolchain/`` and ``tools/``, and
-what goes on the medium in ``base/``.
+the top level says what the system is: what runs on the kernel in
+``userland/``, what builds it in ``toolchain/`` and ``tools/``, and what goes
+on the medium in ``base/``. the kernel is not in it. it is velvet, and the
+build fetches the release this tree names into ``obj/velvet/``.
 
 at a glance
 -----------
 
 ::
 
-    kernel/            velvet, a git submodule: the kernel, philemon,
-                       its suites, and the tools that write images and
-                       disks. its own tree, with its own docs/layout.rst
     userland/          what runs on the machine: the libc and the programs
       libc/            start, stdio, stdlib, format, string
     toolchain/         what builds the machine: the assembler, the linker,
@@ -27,9 +25,14 @@ at a glance
     tools/             the toolchain's checkers and the boot test
     docs/              this
     GNUmakefile        the build
-    .gitmodules        where kernel/ comes from
+    kernel-release.mk  which velvet release the build fetches, by its
+                       version
     ROADMAP.md         where it is going
     CHANGELOG.md       where it has been
+    obj/velvet/        that release, cloned by the build with the rest of
+                       what it makes: the kernel, philemon, its suites,
+                       and the tools that write images and disks. its own
+                       tree, with its own docs/layout.rst
 
 the parts
 ---------
@@ -50,24 +53,25 @@ the parts
      - ``tools/``
      - `subsystems/tools.rst <subsystems/tools.rst>`_
    * - the kernel
-     - ``kernel/``
-     - ``kernel/docs/layout.rst``, and a page per subsystem under
-       ``kernel/docs/subsystems/``
+     - ``obj/velvet/``
+     - its ``docs/layout.rst``, and a page per subsystem under its
+       ``docs/subsystems/``
 
 the line between this tree and the kernel
 -----------------------------------------
 
 **this tree uses the kernel's files and the kernel never uses this tree's.**
-the libc compiles ``kernel/lib/string.c``, ``hash.c``, ``deflate.c``,
+the libc compiles the kernel's ``lib/string.c``, ``hash.c``, ``deflate.c``,
 ``inflate.c`` and ``epoch.c`` rather than keeping copies; git's object store
-includes the kernel's headers, from ``kernel/include/``, for the same
-reason; every program includes the syscall numbers and what the calls take
-from ``kernel/include/uapi/velvet/``; the disk image is written
-by ``kernel/tools/mkboot.py`` and the disks by the kernel's ``mkext4``; and
-the self-hosted build reads ``kernel/sources.mk`` for what the kernel is made
-of. every one of those reaches into the pinned commit, so moving the pin
-moves them all together, and nothing in ``kernel/`` names a path out here.
-that direction is what lets the kernel be a project of its own.
+includes the kernel's headers, from its ``include/``, for the same reason;
+every program includes the syscall numbers and what the calls take from its
+``include/uapi/velvet/``; the disk image is written by its
+``tools/mkboot.py`` and the disks by its ``mkext4``; and the self-hosted
+build reads its ``sources.mk`` for what the kernel is made of. every one of
+those reaches into the release ``kernel-release.mk`` names, through the one
+variable ``KERNEL_SRC`` that says where it is, so moving that file moves
+them all together, and nothing in the kernel names a path out here. that direction is what lets the kernel be a project
+of its own.
 
 the syscall table used to be the one thing written down on both sides,
 equal by care rather than by construction. it is written once now, in the
@@ -80,15 +84,15 @@ inputs and outputs
 ``base/ramdisk/`` and ``base/diskroot/`` are *inputs*: the first is packed into
 the boot tar the loader hands the kernel, the second is copied onto the data
 disk by ``make run``. ``base/ramdisk/etc/os-release`` is where the system's
-own version is written; the kernel's is at the top of
-``kernel/GNUmakefile``.
+own version is written; the kernel's is at the top of its own
+``GNUmakefile``.
 
 everything under ``bin/`` and ``obj/`` is generated and comes back out with
-``make clean``, the kernel's outputs included: the kernel is built into
-``bin/kernel/`` and ``obj/kernel/``, never inside ``kernel/``, so the
-submodule's checkout stays exactly what was pinned. the boot image,
-``velvetos.img``, is written by ``kernel/tools/mkboot.py`` and carries
-philemon, the kernel, the ramdisk and the system's own source tree, the
-kernel's included. `building`_ is the details.
+``make clean``, the fetched release and the kernel's outputs included: the
+kernel is built into ``bin/kernel/`` and ``obj/kernel/``, never inside its
+checkout, so the release stays exactly what was fetched. the boot image,
+``velvetos.img``, is written by the kernel's ``tools/mkboot.py`` and carries
+philemon, the kernel, the ramdisk and the system's own source tree, with
+the kernel's files under ``kernel/`` in it. `building`_ is the details.
 
 .. _building: building.rst

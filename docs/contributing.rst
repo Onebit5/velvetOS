@@ -20,19 +20,22 @@ whose code it is.
 
 **here**: everything that runs in ring 3 or builds the machine from outside
 it. the programs, the libc, the assembler, linker, make and ``ar``, git, the
-checkers for those, what goes on the medium, and which kernel is pinned in
-``kernel/``.
+checkers for those, what goes on the medium, and which velvet release
+``kernel-release.mk`` names.
 
 **velvet**: everything that runs in ring 0 or before it, which is
-everything under ``kernel/``. the subsystems, the shell, philemon, the
-syscall layer, and the tools that write images and disks. a change to a file
-under ``kernel/`` is a change to velvet, sent there; this tree only
-ever changes which commit ``kernel/`` points at.
+everything a build fetches into ``obj/velvet/``. the subsystems, the shell,
+philemon, the syscall layer, and the tools that write images and disks. a
+change to any of it is a change to velvet, sent there; this tree only ever
+changes which release ``kernel-release.mk`` names.
 
 a change that needs both, a new syscall being the usual one, lands in
-velvet first. this half follows as one change that moves the pin to a
-kernel that has the call and starts using it, so no commit here ever names
-a call its pinned kernel does not have.
+velvet first, and waits for a velvet release that has it. this half follows
+as one change that moves ``kernel-release.mk`` to that release and starts
+using the call, so no commit here ever names a call its kernel does not
+have. a kernel change that is not released yet is built against with
+``KERNEL_SRC=../velvet``, locally, and is never what a commit here points
+at.
 
 ways to contribute
 ------------------
@@ -43,7 +46,7 @@ there are three, and the first two are worth as much as the third.
 and for a project this size it is often the most useful one. say:
 
 - the version, from ``base/ramdisk/etc/os-release``, and the kernel's, from
-  the boot banner, with the kernel commit ``git submodule status`` shows;
+  the boot banner, with the release ``kernel-release.mk`` names;
 - what you did, what you expected, what happened;
 - the serial log, if the machine got far enough to write one (``make
   boottest`` leaves one in ``bin/*-boottest.log``);
@@ -75,8 +78,7 @@ sees it:
 
 .. code-block:: sh
 
-   git submodule update --init   # the kernel, at the pinned commit
-   make            # the boot image, velvetos.img
+   make            # the boot image, velvetos.img, fetching the kernel first
    make test       # the host suites; no qemu, a minute or two
    make boottest   # boot in qemu and drive the shell over serial
 
@@ -143,10 +145,10 @@ the subsystem
    one word, matching the directory the change lives in and the vocabulary
    the project already uses: ``user`` for the programs and the libc,
    ``toolchain``, ``git``, ``tools``, ``tests``, ``build``, ``docs``, and
-   ``kernel`` for a commit that moves the pin. a change that genuinely spans
-   two gets the one it is *about*, or ``tree`` for the rare cross-cutting
-   one. this
-   token is the only part of the message that must be lower case.
+   ``kernel`` for a commit that moves ``kernel-release.mk``. a change that
+   genuinely spans two gets the one it is *about*, or ``tree`` for the rare
+   cross-cutting one. this token is the only part of the message that must
+   be lower case.
 
 the subject
    a summary, in normal English, of what the change does:
@@ -300,8 +302,8 @@ what CI runs
 ------------
 
 the workflow is `.github/workflows/ci.yml <../.github/workflows/ci.yml>`_ and
-it runs on every push and every pull request, on a checkout with the kernel
-at the pinned commit. there are two jobs. the first
+it runs on every push and every pull request, and the build fetches the
+release ``kernel-release.mk`` names. there are two jobs. the first
 is ``lint`` on its own, because it needs no toolchain and no build: it is the
 fastest answer a pull request can get, and it should be the one that comes
 back first.

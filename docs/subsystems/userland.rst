@@ -11,7 +11,7 @@ the syscall interface
 
 ``userland/syscall.h`` is the user side of the door: six inline stubs around the
 ``syscall`` instruction, and a wrapper for each call. the numbers are the
-kernel's, included from ``kernel/include/uapi/velvet/``. there is no libc out here;
+kernel's, included from its ``include/uapi/velvet/``. there is no libc out here;
 these stubs are the whole runtime. ``rcx`` and ``r11`` are destroyed by the
 ``syscall`` instruction itself, and the kernel may clobber anything the abi
 allows a call to; the five-argument form puts the fourth and fifth in ``r10``
@@ -39,7 +39,7 @@ dereferenced, in one place, in the syscall layer, and no kernel function
 trusts a pointer it did not create.
 
 the other side of the door is the kernel's, and so is the table: every call,
-what it takes and what it gives back, is in ``kernel/docs/syscalls.rst``.
+what it takes and what it gives back, is in velvet's ``docs/syscalls.rst``.
 the numbers are written down once, in the kernel's
 ``include/uapi/velvet/syscall.h``, and ``userland/syscall.h`` includes them
 from the pinned kernel, along with the signal numbers, the keys ``getkey``
@@ -51,8 +51,9 @@ are checked against the kernel's ``struct user_stat`` and ``struct
 user_from`` at compile time, size and every field, so a layout that
 drifts does not build. the signal trampoline spells its ``mov`` out of
 ``SYS_SIGRETURN`` for the same reason. a new call lands in the kernel
-first and is usable here once ``kernel/`` is pinned to a commit that has
-it and ``syscall.h`` has its wrapper.
+first and is usable here once a velvet release has it,
+``kernel-release.mk`` names that release, and ``syscall.h`` has its
+wrapper.
 
 the libc
 --------
@@ -126,7 +127,7 @@ that declaration is the only description of the program there is. the parser
 reads it, and so does anything that has to explain the program to somebody,
 which is what stops usage text from drifting away from what the code
 actually does. ``help cat`` works by running ``cat --help``; the shell is
-the kernel's, and ``kernel/docs/subsystems/shell.rst`` says how.
+the kernel's, and velvet's ``docs/subsystems/shell.rst`` says how.
 
 understood: ``-v``, ``--verbose``, ``-abc`` for three at once, a value as
 the next word or stuck on or after an ``=``, and ``--`` to say everything

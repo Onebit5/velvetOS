@@ -1,10 +1,10 @@
 # what this system is, for anything that asks.
 #
 # the kernel says its own version in its boot banner, from the top of
-# kernel/GNUmakefile.
+# its own GNUmakefile.
 # this is the system's, which is a number of its own since the kernel
 # became a project of its own: the two are released separately, and the
-# system names the kernel it ships by the commit kernel/ is pinned to.
+# system names the kernel it ships by the commit kernel-release.mk pins.
 NAME="velvetOS"
 ID=velvetos
 VERSION="0.4.0"

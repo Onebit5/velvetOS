@@ -6,9 +6,9 @@ design decision rather than a happy accident. the parts that *think* are
 kept separate from the parts that *touch hardware*, so the suites compile
 the real sources as ordinary linux programs and poke at them.
 
-the kernel's suites are the kernel's, in ``kernel/tests/``, run by its own
-``make test`` and by ``make kernel-test`` here, and described in
-``kernel/docs/testing.rst``. what is here checks what this tree wrote: the
+the kernel's suites are the kernel's, in its ``tests/``, run by its own
+``make test`` and by ``make kernel-test`` here, and described in its
+``docs/testing.rst``. what is here checks what this tree wrote: the
 library, the programs' shared code, git, and the toolchain, and then the
 whole machine, booted.
 
@@ -91,20 +91,20 @@ implementation exists, the project tests against that instead:
    read the source tree back out of the boot image and hold it against the
    working tree, the kernel's files included, and require the archive's
    sha-1 to appear inside the kernel shipped beside it. the checker is the
-   kernel's, ``kernel/tools/srccheck.py``, run over this tree's image.
+   kernel's, its ``tools/srccheck.py``, run over this tree's image.
 
 the static checks
 ~~~~~~~~~~~~~~~~~
 
 ``lint``
-   the style guide, checked mechanically: the file header, the comment shape,
-   the function brace, dashes and first person in prose, tabs and the
-   ``//`` rule. ``make lint`` covers the tree and
-   ``make lint FILES='userland/ls.c'`` covers the files named. the kernel is
-   not in the tree as far as git is concerned, it is one submodule entry,
-   and its own ``make lint`` covers it. naming prefixes are warnings until
-   the tree is converted. it runs before anything is built, on its own and
-   in ci, so it is covered here rather than under the suites.
+   the style guide, checked mechanically: the file header, the comment
+   shape, the function brace, dashes and first person in prose, tabs and the
+   ``//`` rule. ``make lint`` covers the tree and ``make lint
+   FILES='userland/ls.c'`` covers the files named. the kernel is not in the
+   tree as far as git is concerned, since ``obj/velvet/`` is a fetched
+   release git ignores, and its own ``make lint`` covers it. naming prefixes are
+   warnings until the tree is converted. it runs before anything is built,
+   on its own and in ci, so it is covered here rather than under the suites.
 
 ``toolchain``
    the project's own toolchain standing on its own: our make, our assembler
@@ -161,10 +161,11 @@ suite passing on its own does not mean the tree is clean.
 what CI does with all of this
 -----------------------------
 
-the workflow checks out the kernel at the pinned commit, and runs, in
-order: ``make test``, ``make``, ``make boottest``, ``make selfhost``,
-``make selfboot``. see `ci is the gate <contributing.rst>`_ for what
-happens when one of them fails, which is: the pull request does not merge.
+the workflow builds on the kernel release ``kernel-release.mk`` names,
+fetched by the build itself, and runs, in order: ``make test``, ``make``,
+``make boottest``, ``make selfhost``, ``make selfboot``. see `ci is the
+gate <contributing.rst>`_ for what happens when one of them fails, which
+is: the pull request does not merge.
 
 the smoke test
 --------------
@@ -181,5 +182,5 @@ the analysers, the fuzzer and ubsan
 -----------------------------------
 
 ``sparse``, the parser fuzzer and ubsan in trap mode are all pointed at the
-kernel, and moved with it: ``kernel/docs/testing.rst`` has what each is
+kernel, and moved with it: velvet's ``docs/testing.rst`` has what each is
 worth there and how to run it.
