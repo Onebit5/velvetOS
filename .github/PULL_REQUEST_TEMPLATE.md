@@ -13,7 +13,7 @@
 
 ## checklist
 
-- [ ] branched from the latest `main`
+- [ ] branched from the latest `master`
 - [ ] one change, and one subsystem, per commit
 - [ ] `make lint` passes
 - [ ] `make test` passes

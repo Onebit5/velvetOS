@@ -68,7 +68,7 @@ the velvet room, igor, margaret, theodore, lavenza, the arcana. it is a
 flavour rather than a rule, and it is not needed after 1.0.0. the details are
 in `code style <coding-style.rst>`_.
 
-**send a patch.** a pull request against ``main``, on the terms below.
+**send a patch.** a pull request against ``master``, on the terms below.
 
 before you send anything
 ------------------------
@@ -90,10 +90,10 @@ the workflow
 ------------
 
 #. **fork the repository** (or branch, if you have write access) and branch
-   from the **latest** ``main``. a pull request cut from an old ``main`` is a
-   pull request against a tree that no longer exists, and it will be asked to
-   rebase before it is read. name the branch for the subsystem and the change:
-   ``mm/slab-merge-fix``, ``net/tcp-retransmit``.
+   from the **latest** ``master``. a pull request cut from an old
+   ``master`` is a pull request against a tree that no longer exists, and
+   it will be asked to rebase before it is read. name the branch for the
+   subsystem and the change: ``mm/slab-merge-fix``, ``net/tcp-retransmit``.
 
 #. **keep every commit buildable.** each commit in the series builds and
    boots on its own, so a reviewer can read them in order and a bisect lands
@@ -110,7 +110,7 @@ the workflow
    and ``make selfboot`` for anything that touches the toolchain. the same
    commands CI runs.
 
-#. **push and open the pull request** against ``main``. in the description,
+#. **push and open the pull request** against ``master``. in the description,
    say what the change is, why it is needed, which subsystem it touches, and
    how you tested it. if it maps to a roadmap entry, name the entry. if it
    closes an issue, say so. a new feature must also say where its
@@ -181,7 +181,7 @@ the sign-off line
 
       git commit -s        # adds the trailer from your git identity
 
-   if the commits are already pushed, ``git rebase --signoff main`` and a
+   if the commits are already pushed, ``git rebase --signoff master`` and a
    force-push fixes the whole series at once.
 
 the assisted-by trailer
@@ -259,7 +259,7 @@ then write the patches and send them:
 
 .. code-block:: sh
 
-   git format-patch --cover-letter -o /tmp/patches origin/main
+   git format-patch --cover-letter -o /tmp/patches origin/master
    git send-email --to azpijr@gmail.com /tmp/patches
 
 if you use a mail client other than ``git send-email``: plain text only, no

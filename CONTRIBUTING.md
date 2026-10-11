@@ -25,7 +25,7 @@ however good it is, because a tree that does not build is itself the bug. read
 in short: open an issue for a bug. for a feature, open an issue or send an
 email to the maintainer of the subsystem it touches, after reading
 [ROADMAP.md](ROADMAP.md) and the non-goals it lists. branch from the latest
-`main`, keep one subsystem per commit, sign off with `git commit -s`, and make
+`master`, keep one subsystem per commit, sign off with `git commit -s`, and make
 `make test`, `make boottest` and `make selfboot` pass on your own machine
 before ci ever sees them.
 

@@ -4,14 +4,14 @@ releases
 velvetOS does not put version numbers in commits. the log is a record of
 changes, not a sequence of numbered drops: a commit says what it changed and
 why, and nothing about which release it will end up in. the numbers live in
-**github releases**, and a release is cut from ``main`` when a milestone is
+**github releases**, and a release is cut from ``master`` when a milestone is
 done.
 
 how a release happens
 ---------------------
 
 #. the work for a roadmap entry is merged, with its tests, and CI is green
-   on ``main``.
+   on ``master``.
 #. ``base/ramdisk/etc/os-release`` is bumped to the new number.
 #. the ``CHANGELOG.md`` entry is added, in the roadmap's words, with the
    parts that turned out to matter written in.
