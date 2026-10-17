@@ -91,22 +91,3 @@ bool gio_entry(const char *path, long n, char *name, size_t cap,
     }
     return true;
 }
-
-/*
- * epoch.c is two things: the arithmetic that turns a date into a number,
- * which is pure and is what a commit's timestamp needs, and
- * `epoch_now()`, which asks the timer chip what time it is and is
- * therefore kernel-only. an archive pulls in whole members, so taking
- * the first drags in the second and its reference to `pit_uptime_ms`.
- *
- * so it is answered here, and answered honestly: there is no timer chip
- * in ring 3, and nothing in this program calls the function that would
- * want one, the date comes from a file's timestamp instead. splitting
- * epoch.c the way signal.c and tty.c are split is the real fix, and it
- * belongs to whichever version next has a reason to touch it.
- */
-unsigned long pit_uptime_ms(void);
-unsigned long pit_uptime_ms(void)
-{
-    return 0;
-}
