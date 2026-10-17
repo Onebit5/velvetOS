@@ -162,6 +162,13 @@ the programs
    stitched from two moments. ``vmm`` and ``bt`` are root's, since they
    say where the kernel keeps things.
 
+``dmesg``, ``date``
+   two more of the kernel shell's commands. ``dmesg`` asks for the
+   kernel's log with ``klogctl``, how big it is and then all of it, since
+   the log is not a file. ``date`` turns the kernel's count of seconds
+   into words with velvet's own date arithmetic, which this tree compiles
+   into its library.
+
 ``margaret``
    the editor. the text lives in ``textbuf.c``, a separate file because it
    is the half that can be *tested*: an editor is a drawing loop wrapped

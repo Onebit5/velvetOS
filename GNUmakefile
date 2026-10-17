@@ -171,7 +171,8 @@ USER_PROGS := base/ramdisk/bin/hello base/ramdisk/bin/counter base/ramdisk/bin/f
               base/ramdisk/bin/ps base/ramdisk/bin/vmm base/ramdisk/bin/bt \
               base/ramdisk/bin/lspci base/ramdisk/bin/disk \
               base/ramdisk/bin/parts base/ramdisk/bin/cpus \
-              base/ramdisk/bin/mount
+              base/ramdisk/bin/mount \
+              base/ramdisk/bin/dmesg base/ramdisk/bin/date
 
 userland: $(USER_PROGS)
 
