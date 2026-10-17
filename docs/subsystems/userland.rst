@@ -200,6 +200,14 @@ the programs
    are gone for now: the console takes the sequences and does not yet
    paint with them.
 
+``kill``, ``poweroff``, ``reboot``
+   ``kill [-signal] pid...`` sends SIGTERM, or the signal named, to each
+   process, or to a whole job given as minus its group; the kernel lets
+   a program signal only its own processes unless it is root.
+   ``poweroff`` and ``reboot`` ask the kernel to stop the machine, which
+   it does tidily: every program but init asked to stop, its services
+   stopped, and the disk written out and closed. only root may ask.
+
 ``margaret``
    the editor. the text lives in ``textbuf.c``, a separate file because it
    is the half that can be *tested*: an editor is a drawing loop wrapped
