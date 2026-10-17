@@ -7,6 +7,15 @@
 
 #include "syscall.h"
 
+/* whether ctrl+c has been pressed, set by the handler whenever it arrives */
+static volatile long s_i_asked;
+
+static void asked(long i_sig)
+{
+    (void)i_sig;
+    s_i_asked = 1;
+}
+
 static void prompt_for(const char *what, char *buf, long max)
 {
     write(what);
@@ -27,11 +36,13 @@ void _start(int argc, char **argv)
     (void)argc; (void)argv;
 
     /*
-     * ctrl+c is a request here, not an order: ignoring it keeps the
-     * process alive to decide, and the call it interrupts still comes
-     * back -1. pressing it twice is the kernel's business, not the program's
+     * ctrl+c is a request here, not an order: caught, so the process
+     * stays alive to decide, and the call it interrupts still comes back
+     * -1. caught rather than ignored, because an ignored one that arrives
+     * while this is printing is gone by the time it next sleeps, and the
+     * handler remembers it whenever it comes
      */
-    signal(SIGINT, (void (*)(long))SIG_IGNORE);
+    signal(SIGINT, asked);
 
     char name[64];
 
@@ -52,7 +63,7 @@ void _start(int argc, char **argv)
 
     write("[ask] now say nothing, and press ctrl+c to interrupt the program\n");
     for (int i = 0; i < 20; i++) {
-        if (sleep(500) < 0) {
+        if (s_i_asked || sleep(500) < 0 || s_i_asked) {
             write("[ask] interrupted mid-sleep. leaving politely\n");
             exit(130);
         }
