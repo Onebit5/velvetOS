@@ -22,6 +22,7 @@
 #include <uapi/velvet/signal.h>
 #include <uapi/velvet/input.h>
 #include <uapi/velvet/tty.h>
+#include <uapi/velvet/fsck.h>
 
 #define STDIN   0
 #define STDOUT  1
@@ -419,6 +420,113 @@ static inline long now_seconds(void)
 static inline long alarm(long seconds)
 {
     return syscall1(SYS_ALARM, seconds);
+}
+
+/*
+ * the calls velvet 0.4.1 added, which are what a program needs to do
+ * everything the kernel's shell used to do for it: become another
+ * program, build a pipeline, run jobs on a console of its own, become a
+ * user, stop the machine, and ask for the reports only the shell could
+ * print
+ */
+static inline long waitpid(long i_pid, int *p_status, long i_flags)
+{
+    return syscall3(SYS_WAIT, i_pid, (long)p_status, i_flags);
+}
+
+/* the environment is the process's and goes with it, so there is no envp */
+static inline long execv(const char *str_path, char *const pp_argv[])
+{
+    return syscall3(SYS_EXECVE, (long)str_path, (long)ustrlen(str_path),
+                    (long)pp_argv);
+}
+
+static inline long pipe(int32_t arr_fds[2])
+{
+    return syscall1(SYS_PIPE, (long)arr_fds);
+}
+
+static inline long dup2(long i_from, long i_to)
+{
+    return syscall2(SYS_DUP2, i_from, i_to);
+}
+
+static inline long lseek(long i_fd, long i_offset, long i_whence)
+{
+    return syscall3(SYS_LSEEK, i_fd, i_offset, i_whence);
+}
+
+static inline long setpgid(long i_pid, long i_pgid)
+{
+    return syscall2(SYS_SETPGID, i_pid, i_pgid);
+}
+
+static inline long tcsetpgrp(long i_pgid)
+{
+    return syscall1(SYS_TCSETPGRP, i_pgid);
+}
+
+static inline long tcgetpgrp(void)
+{
+    return syscall0(SYS_TCGETPGRP);
+}
+
+static inline long ttyattach(long i_console)
+{
+    return syscall1(SYS_TTYATTACH, i_console);
+}
+
+static inline long setuid(long i_uid)
+{
+    return syscall1(SYS_SETUID, i_uid);
+}
+
+static inline long reboot(long i_how)
+{
+    return syscall1(SYS_REBOOT, i_how);
+}
+
+static inline long sync(void)
+{
+    return syscall0(SYS_SYNC);
+}
+
+static inline long fsck(const char *str_at, long i_flags,
+                        struct user_fsck *p_out)
+{
+    return syscall4(SYS_FSCK, (long)str_at, (long)ustrlen(str_at), i_flags,
+                    (long)p_out);
+}
+
+static inline long resize(const char *str_at, long i_blocks,
+                          struct user_resize *p_out)
+{
+    return syscall4(SYS_RESIZE, (long)str_at, (long)ustrlen(str_at),
+                    i_blocks, (long)p_out);
+}
+
+static inline long source_tree(long i_flags, struct user_source *p_out)
+{
+    return syscall2(SYS_SOURCE, i_flags, (long)p_out);
+}
+
+static inline long klogctl(long i_type, char *str_buf, long i_len)
+{
+    return syscall3(SYS_SYSLOG, i_type, (long)str_buf, i_len);
+}
+
+/*
+ * a signal ignored, or put back to what it does by default, which needs
+ * no handler and so no trampoline
+ */
+static inline long signal_ignore(long i_sig)
+{
+    return syscall3(SYS_SIGNAL, i_sig, SIG_IGNORE, 0);
+}
+
+static inline long signal_default(long i_sig)
+{
+    return syscall3(SYS_SIGNAL, i_sig, SIG_DEFAULT, 0);
 }
 
 static inline unsigned int parse_ip(const char *s)

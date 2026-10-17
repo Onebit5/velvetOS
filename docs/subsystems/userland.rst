@@ -20,19 +20,25 @@ could have read it.
 
 the calls, grouped:
 
-- **process**: ``exit``, ``getpid``, ``fork``, ``spawn``, ``wait``,
-  ``getuid``, ``alarm``, ``now``, ``yield``, ``sleep``, ``uptime``.
+- **process**: ``exit``, ``getpid``, ``fork``, ``spawn``, ``execv``,
+  ``wait`` and ``waitpid``, ``getuid``, ``setuid``, ``setpgid``,
+  ``alarm``, ``now``, ``yield``, ``sleep``, ``uptime``, ``reboot``.
 - **files**: ``open``, ``close``, ``read``, ``write``, ``create``,
-  ``readdir``, ``stat``, ``mkdir``, ``rmdir``, ``unlink``, ``rename``,
-  ``chdir``, ``getcwd``, ``chmod``, ``chown``, ``symlink``, ``readlink``.
+  ``lseek``, ``pipe``, ``dup2``, ``readdir``, ``stat``, ``mkdir``,
+  ``rmdir``, ``unlink``, ``rename``, ``chdir``, ``getcwd``, ``chmod``,
+  ``chown``, ``symlink``, ``readlink``.
+- **filesystems**: ``sync``, ``fsck``, ``resize``, and ``source_tree``
+  for the source on the boot medium.
 - **memory**: ``mmap``, ``munmap``.
 - **the terminal**: ``getkey``, ``screen``, ``cursor``, ``clear``,
-  ``ttymode``, ``winsize``.
+  ``ttymode``, ``winsize``, ``ttyattach``, ``tcsetpgrp``, ``tcgetpgrp``.
+- **the kernel's log**: ``klogctl``.
 - **environment**: ``getenv``, ``setenv``.
 - **network**: ``socket``, ``sendto``, ``recvfrom``, ``recvwait``,
   ``select``, ``connect``, ``listen``, ``accept``, ``send``, ``recv``,
   ``shutdown``.
-- **signals**: ``signal``, ``sigsend``, ``sigreturn``, ``sigmask``.
+- **signals**: ``signal``, ``signal_ignore``, ``signal_default``,
+  ``sigsend``, ``sigreturn``, ``sigmask``.
 
 a syscall argument that is a user address is validated before it is
 dereferenced, in one place, in the syscall layer, and no kernel function
@@ -46,6 +52,9 @@ from the pinned kernel, along with the signal numbers, the keys ``getkey``
 hands back and the terminal flags ``tty_mode`` takes. they used to be copied
 here, under an XXX saying nothing held the two lists together, and a call
 inserted in the middle of either would have renumbered every call after it.
+``execv`` has no envp, because the environment is kept by the kernel for
+the process and goes across an exec with it, and ``waitpid`` is
+``wait`` with its flags, which every older caller passes as 0.
 ``struct stat`` and ``struct from`` keep the names a program expects and
 are checked against the kernel's ``struct user_stat`` and ``struct
 user_from`` at compile time, size and every field, so a layout that
