@@ -8,5 +8,5 @@
 # fetches it, and committing the file is how the system moves to a new
 # kernel: one line in the log that says which kernel every build after it
 # ships.
-KERNEL_VERSION := 0.4.0
+KERNEL_VERSION := 0.4.1
 KERNEL_URL     ?= https://github.com/Onebit5/velvet.git

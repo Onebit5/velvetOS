@@ -201,7 +201,7 @@ check 'date works'    ':'
 # the word alone passes whether or not history printed anything
 check 'history works' '4  uptime'
 check 'ramdisk mounted' 'ramdisk    :'
-check 'ls is a program'  '6 files, 3 directories'
+check 'ls is a program'  '6 files, 4 directories'
 check 'ls works'         'motd.txt'
 check 'echo is a program' 'the bond endures'
 check 'echo works'       'the bond endures'
