@@ -178,7 +178,8 @@ USER_PROGS := base/ramdisk/bin/hello base/ramdisk/bin/counter base/ramdisk/bin/f
               base/ramdisk/bin/src \
               base/ramdisk/bin/arcana base/ramdisk/bin/persona \
               base/ramdisk/bin/kill base/ramdisk/bin/poweroff \
-              base/ramdisk/bin/reboot
+              base/ramdisk/bin/reboot \
+              base/ramdisk/bin/sh
 
 userland: $(USER_PROGS)
 
@@ -288,6 +289,15 @@ base/ramdisk/bin/git: userland/git.c userland/gitobj.c userland/gitio_velvet.c u
 	$(CC) $(UCFLAGS) -c userland/gitio_velvet.c -o obj/user_gitio.o
 	$(LD) $(ULDFLAGS) obj/user_git.o obj/user_gitobj.o obj/user_gitio.o \
 	      obj/user_args.o obj/user_difflib.o obj/libc.a -o $@
+
+# the shell, whose line parser is a file of its own so the host suite can
+# take it without the half that forks
+base/ramdisk/bin/sh: userland/sh.c userland/shparse.c userland/shparse.h \
+                userland/syscall.h $(UAPI) toolchain/linker.ld obj/libc.a
+	@mkdir -p $(@D)
+	$(CC) $(UCFLAGS) -c userland/sh.c -o obj/user_sh.o
+	$(CC) $(UCFLAGS) -c userland/shparse.c -o obj/user_shparse.o
+	$(LD) $(ULDFLAGS) obj/user_sh.o obj/user_shparse.o obj/libc.a -o $@
 
 base/ramdisk/bin/%: userland/%.c userland/syscall.h $(UAPI) userland/args.h userland/lines.h \
                userland/report.h \
@@ -477,9 +487,12 @@ HOSTCC    := gcc
 HOSTFLAGS := -std=gnu11 -Wall -Wextra -Wno-stringop-truncation -Wno-stringop-overread -g -DVELVETOS_HOSTED -I$(KERNEL_SRC)/include -I$(KERNEL_SRC)/arch/x86_64/include -DVELVETOS_ARCH_X86_64
 
 TEST_BINS := bin/tests/args bin/tests/libc bin/tests/textbuf \
-             bin/tests/difflib bin/tests/git
+             bin/tests/difflib bin/tests/git bin/tests/shparse
 
 bin/tests/args:     tests/test_args.c     userland/args.c
+# the shell's line parser: words, quotes, $ and the operators, which is the
+# half of a shell where a mistake runs the wrong thing
+bin/tests/shparse:  tests/test_shparse.c  userland/shparse.c
 # the library programs link against. the allocator is included rather
 # than linked so its free list can be reset between sections, and
 # `libc_get_pages` is the one seam: what is tested is the real

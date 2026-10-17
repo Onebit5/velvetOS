@@ -30,6 +30,8 @@ narrow seam instead, and the suite replaces the seam and nothing else:
   store the suite and ``gitcheck`` drive.
 - the text buffer and the diff are pure: a structure and the operations on
   it, with the drawing and the reading left to the program that uses them.
+- the shell's parser is pure too, and is handed a function to look a
+  variable up with, so the suite decides what ``$HOME`` is.
 
 the kernel does the same thing at a larger scale, and its ``testing.rst``
 says how. see `testability <coding-style.rst>`_ for the rule that keeps a
@@ -57,6 +59,12 @@ failing case. all of them:
 ``libc``, ``args``, ``textbuf``, ``difflib``
    the userland library, argument parsing, the editor's text buffer, and the
    diff every program that compares two files shares.
+
+``shparse``
+   the shell's line parser: words and quotes, ``$`` and what it expands
+   to, and ``|``, ``<``, ``>``, ``>>`` and a last ``&``. it is the half of
+   a shell where a mistake runs the wrong thing, and it forks nothing, so
+   it is checked here rather than on a machine.
 
 ``git``
    the git object store, with no arguments; with some, the tool

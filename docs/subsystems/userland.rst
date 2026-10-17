@@ -248,6 +248,42 @@ the programs
    checkout, over the object store in the kernel. see `the toolchain
    <toolchain.rst>`_.
 
+the shell
+---------
+
+``sh`` is the shell as a program, where it used to be part of the kernel.
+it does what that one did, with nothing but the calls any program has:
+
+- **a pipeline is forks joined by pipes.** each stage is forked, put in
+  the job's process group with ``setpgid``, given its end of a pipe and
+  its ``<``, ``>`` or ``>>`` with ``dup2``, and then becomes the program
+  with ``execv``. ``>>`` opens the file and ``lseek``\ s to its end.
+- **a job is a process group, and the terminal goes to it.** a job in the
+  foreground is put in front with ``tcsetpgrp``, and its processes wait on
+  a pipe the shell closes once it has done that, so a program never reads
+  the keyboard from behind. ctrl+c and ctrl+z are signals to the group in
+  front, ``wait`` with ``WUNTRACED`` says which job stopped, and ``fg`` and
+  ``bg`` send it ``SIGCONT``. the shell ignores both signals itself.
+- **a background job is reported when it ends**, at the next prompt, by
+  ``wait`` with ``WNOHANG``, the way the kernel's shell did, in the same
+  words: ``[1]+ done  ...``.
+
+the language is the kernel shell's, so the scripts written for it still
+run: ``set NAME value`` and ``$NAME``, ``$?``, ``if``, ``else``, ``while``
+and ``end`` around lines, ``test`` to ask a question with, ``source`` to
+run a file here, ``history``, ``help``, ``cd``, ``jobs``, ``fg``, ``bg``,
+``exit`` and ``logout``. a file that starts with ``#!`` is commands for the
+shell rather than a program, and runs in a child. ``run prog`` still works
+and means ``prog``. the variables are the process's environment, which the
+kernel keeps, so a child is born with them, and ``set`` alone lists them
+from ``/proc/environ``. ``/etc/profile``, or ``/boot/etc/profile`` when the
+disk has none, is read at the start of each session.
+
+the line is parsed by ``shparse.c``, which forks nothing and is checked by
+the host suite: words, quotes, ``$``, and the operators. what it does not
+have yet is in velvetOS 0.6.0: ``&&``, ``||``, subshells, ``$( )``,
+functions, and history that survives a reboot.
+
 the toolchain
 -------------
 
