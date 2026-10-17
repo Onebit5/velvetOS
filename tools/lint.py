@@ -33,6 +33,11 @@ LINE_MAX = 80
 
 TYPES = ('bool', 'int', 'int32_t', 'int64_t', 'unsigned int', 'uint32_t',
          'uint64_t', 'size_t', 'float', 'double', 'char', 'std::string')
+# what a variable's scope says goes in front of what its type says:
+# g_ for a global, s_ for a static, m_ for a member, so s_i_status is a
+# static int and is named right
+SCOPE = ('g_', 's_', 'm_')
+
 PREFIX = {'bool': 'b_', 'int': 'i_', 'int32_t': 'i_', 'int64_t': 'i_',
           'unsigned int': 'u_', 'uint32_t': 'u_', 'uint64_t': 'u_',
           'size_t': 'sz_', 'float': 'f_', 'double': 'd_', 'char': 'c_',
@@ -228,7 +233,8 @@ def check_file(path, strict):
             for m in DECL.finditer(mask(line, scan(line))):
                 t, name = m.group(1), m.group(2)
                 want = PREFIX[t]
-                if not name.startswith(want):
+                bare = name[2:] if name[:2] in SCOPE else name
+                if not bare.startswith(want):
                     msg = "naming: '%s' (%s) should start with '%s'"
                     problems.append((i, msg % (name, t, want), 'warn'))
 
