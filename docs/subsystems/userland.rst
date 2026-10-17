@@ -179,6 +179,17 @@ the programs
    them. a filesystem is named by where it is mounted: ``fsck work`` is
    ``/work``. mending and resizing are root's.
 
+``src``
+   the source this machine was built from, which is on the boot medium
+   past everything philemon loads, and mounted at ``/boot/src``. ``src``
+   says how much there is and which tree the kernel was built from;
+   ``src verify`` has the kernel read and hash the whole archive and
+   compares the hash with the one the build stamped into the kernel;
+   ``src unpack [where]`` copies it somewhere it can be edited, ``/src``
+   unless told otherwise. the copy is ordinary reading and writing of
+   files. the archive names each file by its whole path, so the
+   directories are made as the files need them.
+
 ``margaret``
    the editor. the text lives in ``textbuf.c``, a separate file because it
    is the half that can be *tested*: an editor is a drawing loop wrapped

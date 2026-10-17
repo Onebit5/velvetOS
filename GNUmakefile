@@ -174,7 +174,8 @@ USER_PROGS := base/ramdisk/bin/hello base/ramdisk/bin/counter base/ramdisk/bin/f
               base/ramdisk/bin/mount \
               base/ramdisk/bin/dmesg base/ramdisk/bin/date \
               base/ramdisk/bin/sync base/ramdisk/bin/fsck \
-              base/ramdisk/bin/resize
+              base/ramdisk/bin/resize \
+              base/ramdisk/bin/src
 
 userland: $(USER_PROGS)
 
