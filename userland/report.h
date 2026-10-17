@@ -41,4 +41,30 @@ static inline int report(const char *str_path)
     return 0;
 }
 
+/*
+ * the same file into `str_buf`, ended by a NUL, for a program that reads
+ * the report rather than shows it: its length, or -1. in one read, for
+ * the reason report() gives
+ */
+static inline long report_text(const char *str_path, char *str_buf,
+                               long i_size)
+{
+    long i_fd = open(str_path);
+    long i_len = 0;
+
+    if (i_fd < 0 || i_size <= 0) {
+        return -1;
+    }
+    for (;;) {
+        long i_got = read_fd(i_fd, str_buf + i_len, i_size - 1 - i_len);
+        if (i_got <= 0) {
+            break;
+        }
+        i_len += i_got;
+    }
+    close(i_fd);
+    str_buf[i_len] = '\0';
+    return i_len;
+}
+
 #endif

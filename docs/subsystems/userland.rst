@@ -190,6 +190,16 @@ the programs
    files. the archive names each file by its whole path, so the
    directories are made as the files need them.
 
+``arcana``, ``persona``
+   the kernel shell's two portraits of the machine, drawn now from what
+   ``/proc`` says: the version, the compiler and the build time from
+   ``version``, the processor from ``cpuinfo``, memory from ``meminfo``,
+   the threads from ``threads``. ``arcana`` counts the ramdisk's files by
+   walking ``/boot``, and does not walk into another mount under it,
+   ``/boot/src`` being the whole source tree on the medium. the colours
+   are gone for now: the console takes the sequences and does not yet
+   paint with them.
+
 ``margaret``
    the editor. the text lives in ``textbuf.c``, a separate file because it
    is the half that can be *tested*: an editor is a drawing loop wrapped
