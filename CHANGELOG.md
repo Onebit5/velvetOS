@@ -33,6 +33,40 @@ than five. what is still to come is in [ROADMAP.md](ROADMAP.md).
 
 ---
 
+- **0.4.1**: a system of its own, on velvet 0.4.1. until now the kernel
+  decided what a session was: its own login on each of four consoles,
+  and its own shell behind each, a kernel thread. **the machine's first
+  program is now this tree's**: `/init`, at the root of the ramdisk, which
+  the kernel runs as pid 1. it starts `login` on each console, in a group
+  of its own and owning that console, starts it again when the session
+  ends, and collects every orphan on the machine.
+
+  `login` greets, clears what the last person left, checks the name and
+  the word against `/boot/passwd`, and becomes the user and then **`sh`,
+  the shell as a program.** pipelines are forks joined by pipes, a job is
+  a process group with the terminal handed to it, ctrl+z is a stop that
+  `wait` reports, and `fg` and `bg` carry on from there, the way the
+  kernel's shell did it inside the kernel. the language is that shell's,
+  so its scripts and `/etc/profile` run as they did, and its parser has a
+  host suite of its own. what sh does not have yet, `&&` and the rest, is
+  still 0.6.0.
+
+  the kernel shell's commands became programs: `mem`, `slabs`, `ps`,
+  `vmm`, `bt`, `lspci`, `disk`, `parts`, `cpus` and `mount` print what
+  velvet writes into `/proc`; `dmesg`, `date`, `sync`, `fsck`, `resize`,
+  `src`, `arcana`, `persona`, `kill`, `poweroff` and `reboot` ask the
+  kernel and put the answer into the words its shell used. `syscall.h`
+  wraps the calls they stand on.
+
+  four things on the way. a fetch of the kernel from a local checkout,
+  `KERNEL_URL=../velvet`, had never worked: the path was read from inside
+  the clone. `ask` caught nothing and counted on an ignored ctrl+c
+  cutting its sleep short, which an ignored one does not do if it lands
+  while the program is printing. `arcana` walked the whole source tree
+  under `/boot/src` to count the ramdisk's files, slowly enough that the
+  next command typed went to it. and lint learnt that `s_` goes in front
+  of the type's prefix rather than in place of it.
+
 - **0.4.0**: the last of the toolchain, and a kernel built by it. four
   things 0.3.x named as owed and left, none of them a compiler and every one
   of them in the way of one. **`trampoline.asm` diverged from nasm at byte

@@ -7,7 +7,7 @@
 # system names the kernel it ships by the commit kernel-release.mk pins.
 NAME="velvetOS"
 ID=velvetos
-VERSION="0.4.0"
-VERSION_ID=0.4.0
-PRETTY_NAME="velvetOS 0.4.0"
+VERSION="0.4.1"
+VERSION_ID=0.4.1
+PRETTY_NAME="velvetOS 0.4.1"
 HOME_URL="https://github.com/Onebit5/velvetOS"

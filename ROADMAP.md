@@ -52,7 +52,7 @@ checked against the GNU one it replaces. writing a C compiler would mean
 the kernel could only use the C that compiler had learned, which is a
 hostage rather than a tool, and nothing above needs one.
 
-**0.4.1 the disk that continues the project.** what is left over is not a
+**0.4.2 the disk that continues the project.** what is left over is not a
 compiler, and none of it was ever going to be. a **ustar writer**, named
 at 0.3.26 as the gap: this machine reads two archives and can write
 neither, and `tar` lives on the development machine. `srcstamp` in C,
@@ -74,7 +74,7 @@ one. no debugger, so a fault is read the way faults have been read here
 since the beginning: a backtrace, a symbol, and the source that is now
 sitting on the same disk.
 
-**0.4.2 installing.** 0.4.1 gives the machine the pieces to write an
+**0.4.3 installing.** 0.4.2 gives the machine the pieces to write an
 image; this is the program that does it, onto a disk that is not the one
 it booted from: a partition table, philemon in the first sector, the
 kernel, the ramdisk and the source, written by velvetOS on the machine
@@ -82,12 +82,12 @@ being installed. the development host is not in this sentence, and
 neither are `mkboot`, `mkfat` and `mkext4`. *ends when a blank disk goes
 in beside the system disk and comes out booting on another machine.*
 
-**0.4.3 the machine replaces its own kernel.** build, link, install and
+**0.4.4 the machine replaces its own kernel.** build, link, install and
 offer a reboot, from inside velvetOS, in place: the source has been on the
 disk since 0.3.26 and everything that reads it is already ours. velvet
-0.4.1 and 0.4.2 are what make it safe to try: a boot that can choose
+0.4.3 and 0.4.4 are what make it safe to try: a boot that can choose
 between two kernels, and one that falls back to the old kernel when the
-new one does not come up. *ends with the test 0.4.1 describes performed
+new one does not come up. *ends with the test 0.4.2 describes performed
 for real: one line of the kernel changed on the machine itself, `make`,
 install, reboot into the change, and the commit made by the git that lives
 here.*
@@ -111,8 +111,8 @@ the passwords, the login, and who is allowed to become whom.
 
 **0.5.0 accounts, and groups to put them in.** `/etc/passwd` and
 `/etc/group`, which moves the file into `/etc` on the way, since it has
-been sitting at the root of the ramdisk since 0.1.5; the kernel shell's
-login reads it from there until 0.5.1 replaces that login. then `id`, and
+been sitting at the root of the ramdisk since 0.1.5, and `login`, a
+program since 0.4.1, moves with it. then `id`, and
 `chmod`, `chown` and a `chgrp` that finally have a kernel that respects
 them, since velvet 0.5.1 gives every process a gid and makes the vfs
 consult the group bits.
@@ -134,11 +134,9 @@ hasher is *deliberately slow and deliberately hungry*: argon2 asks for
 tens of megabytes because that is what makes it worth having, so this is
 the first program on the machine whose whole point is to allocate more
 than it needs, and 0.3.13's reserve has to hold while it does. and slow
-means `login` cannot stay where it is: it is a function inside the kernel
-shell today, and a password check that takes half a second must not be
-somewhere that can stop another console from typing. so login becomes a
-program here, using velvet 0.5.1's calls to become the person who logged
-in, and the kernel shell's own login goes.
+is fine where `login` is now: a program of its own since 0.4.1, on a
+console of its own, so a check that takes half a second keeps nobody
+else from typing.
 
 **0.5.2 who else is here.** there have been four consoles since 0.2.16
 and, once 0.5.0 exists, they can be four different people. `who` and
@@ -146,13 +144,6 @@ and, once 0.5.0 exists, they can be four different people. `who` and
 rule (output belongs to its writer, input belongs to the screen) gains the
 clause it has not needed until now, which is that neither belongs to
 anybody else.
-
-and the smallest, most embarrassing hole in the series, which is open
-today: **logout does not clear the screen.** the session is thrown away
-properly (not the directory, not the history, not the variables), and
-`login` then prints a prompt onto a console still holding 128 lines of
-scrollback from the person who just left. the state was cleaned and the
-*picture* of it was not.
 
 **0.5.3 grant.** a setuid bit on the filesystem, which velvet 0.5.1
 teaches the kernel to honour, and a program called `grant` that uses it.
@@ -238,15 +229,16 @@ here follow it without a port: they include the kernel's
 `include/uapi/velvet/` rather than copying it, and moving to a velvet that
 speaks linux's numbers is a rebuild.
 
-**0.6.0 a shell in ring 3.** 0.2.18 ended its blocks with `end` rather than
-`fi` and `done`, deliberately, on the grounds that a shell that looks like
-sh and is not is worse than one that plainly is not. this is the other
-side of that argument: a real `sh` as a program, with quoting, `&&`,
-`||`, subshells, `$( )`, functions, and job control through velvet
-0.6.0's syscalls rather than through kernel internals. the kernel shell
-stays exactly as it is and becomes the rescue shell, which is a better
-outcome than replacing it: one shell for when the disk is broken, one for
-work.
+**0.6.0 a shell that is sh.** 0.2.18 ended its blocks with `end` rather
+than `fi` and `done`, deliberately, on the grounds that a shell that looks
+like sh and is not is worse than one that plainly is not, and when 0.4.1
+made the shell a program, with quoting and its jobs run through the
+kernel's calls, it kept that language so the scripts written for it kept
+running. this is the other side of that argument: `fi` and `done`, `&&`,
+`||`, subshells, `$( )` and functions, in the same program. the kernel's
+own shell becomes a monitor in velvet 0.4.2, for when the disk is broken,
+which is the better outcome than replacing it: one shell for that, and
+one for work.
 
 **0.6.1 a shell that remembers.** up-arrow history that survives a
 reboot, and completion that knows about users and groups as well as
