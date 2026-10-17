@@ -180,7 +180,8 @@ USER_PROGS := base/ramdisk/bin/hello base/ramdisk/bin/counter base/ramdisk/bin/f
               base/ramdisk/bin/kill base/ramdisk/bin/poweroff \
               base/ramdisk/bin/reboot \
               base/ramdisk/bin/sh \
-              base/ramdisk/bin/login
+              base/ramdisk/bin/login \
+              base/ramdisk/init
 
 userland: $(USER_PROGS)
 
@@ -290,6 +291,13 @@ base/ramdisk/bin/git: userland/git.c userland/gitobj.c userland/gitio_velvet.c u
 	$(CC) $(UCFLAGS) -c userland/gitio_velvet.c -o obj/user_gitio.o
 	$(LD) $(ULDFLAGS) obj/user_git.o obj/user_gitobj.o obj/user_gitio.o \
 	      obj/user_args.o obj/user_difflib.o obj/libc.a -o $@
+
+# the machine's init, at the root of the ramdisk, which is where the kernel
+# looks for the program to make pid 1
+base/ramdisk/init: userland/init.c userland/syscall.h $(UAPI) \
+                   toolchain/linker.ld obj/libc.a
+	$(CC) $(UCFLAGS) -c userland/init.c -o obj/user_init.o
+	$(LD) $(ULDFLAGS) obj/user_init.o obj/libc.a -o $@
 
 # the shell, whose line parser is a file of its own so the host suite can
 # take it without the half that forks

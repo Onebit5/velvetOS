@@ -78,7 +78,6 @@ echo "booting $BOOTIMG and driving the shell over serial..."
     printf 'ps\r';     sleep 1
     printf 'uptime\r'; sleep 1
     printf 'echo the bond endures\r'; sleep 1
-    printf 'summon pixie\r'; sleep 3
     printf 'ps\r';     sleep 2
     printf 'vmm\r';    sleep 2
     printf 'bt\r';     sleep 2
@@ -191,11 +190,10 @@ check 'mem works'     'physical frames'
 check 'uptime works'  'awake for'
 check 'echo works'    'the bond endures'
 check 'ps works'      'idle'
-check 'summon works'  'has answered thy call'
-check 'thread ran'    '[pixie]'
 check 'vmm works'     'pml4 at'
 check 'bt works'      'call trace:'
-check 'symbols work'  'shell_run+'
+# the kernel's call trace of a program reading /proc/stack, named
+check 'symbols work'  'sys_read+'
 check 'date works'    ':'
 # numbered, because the typed command is echoed back too: a check for
 # the word alone passes whether or not history printed anything
@@ -274,7 +272,7 @@ check 'syscalls work'  'the kernel yet lives'
 check 'loop completed'  '5 ... the kernel yet lives'
 check 'registers kept'  'My purpose is fulfilled'
 check 'program exited'  'sea of souls'
-check 'two at once'     'runs in the background'
+check 'two at once'     'running  bin/counter'
 check 'isolated memory' "this memory is the program's alone"
 check 'ps has processes' 'bin/counter'
 check 'pids assigned'    'is pid'

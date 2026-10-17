@@ -140,9 +140,13 @@ boot image, when a run fails.
 
 this is the whole machine, and the only check that is. the kernel's own boot
 test boots a medium with no programs on it; this one runs them, in ring 3,
-on the pinned kernel: programs that exit with a code, fork, spawn and wait,
-read input, and are stopped by ctrl+c, the guest refused a file, and the
-source on the medium read with ``cat``.
+on the pinned kernel: ``/init`` as pid 1, ``login`` on each console, and
+``sh`` running everything typed, so the logins, the pipelines, the jobs in
+the background and ctrl+c are all the system's own programs at work.
+programs that exit with a code, fork, spawn and wait, read input, and are
+stopped by ctrl+c, the guest refused a file, ``fsck``, ``resize`` and
+``src`` asking the kernel and putting the answer in words, and the source
+on the medium read with ``cat``.
 
 ``selfboot``
 ------------
