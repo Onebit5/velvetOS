@@ -89,6 +89,11 @@ def fetch(d, url, version):
     else:
         git("init", "-q", d)
     say("KERNEL  velvet %s, from %s" % (tag, url))
+    # the fetch runs inside the clone, so a local path given relative to
+    # this tree has to be made absolute first, or ../velvet means the
+    # clone itself
+    if os.path.exists(url):
+        url = os.path.abspath(url)
     git("-C", d, "fetch", "-q", "--depth", "1", url,
         "+refs/tags/%s:refs/tags/%s" % (tag, tag))
     git("-C", d, "-c", "advice.detachedHead=false", "checkout", "-q",
