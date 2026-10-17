@@ -172,7 +172,9 @@ USER_PROGS := base/ramdisk/bin/hello base/ramdisk/bin/counter base/ramdisk/bin/f
               base/ramdisk/bin/lspci base/ramdisk/bin/disk \
               base/ramdisk/bin/parts base/ramdisk/bin/cpus \
               base/ramdisk/bin/mount \
-              base/ramdisk/bin/dmesg base/ramdisk/bin/date
+              base/ramdisk/bin/dmesg base/ramdisk/bin/date \
+              base/ramdisk/bin/sync base/ramdisk/bin/fsck \
+              base/ramdisk/bin/resize
 
 userland: $(USER_PROGS)
 

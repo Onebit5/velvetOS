@@ -169,6 +169,16 @@ the programs
    into words with velvet's own date arithmetic, which this tree compiles
    into its library.
 
+``sync``, ``fsck``, ``resize``
+   the filesystem commands. the kernel still does the work: it writes out
+   what it is holding, checks a filesystem and grows or shrinks it, and
+   says what happened in the structs ``fsck`` and ``resize`` hand back,
+   counts and sizes rather than sentences. these put the counts into the
+   words the kernel's shell used, so ``fsck`` keeps its own table of what
+   each kind of problem is called, indexed by the kernel's numbering of
+   them. a filesystem is named by where it is mounted: ``fsck work`` is
+   ``/work``. mending and resizing are root's.
+
 ``margaret``
    the editor. the text lives in ``textbuf.c``, a separate file because it
    is the half that can be *tested*: an editor is a drawing loop wrapped
