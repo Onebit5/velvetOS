@@ -179,7 +179,8 @@ USER_PROGS := base/ramdisk/bin/hello base/ramdisk/bin/counter base/ramdisk/bin/f
               base/ramdisk/bin/arcana base/ramdisk/bin/persona \
               base/ramdisk/bin/kill base/ramdisk/bin/poweroff \
               base/ramdisk/bin/reboot \
-              base/ramdisk/bin/sh
+              base/ramdisk/bin/sh \
+              base/ramdisk/bin/login
 
 userland: $(USER_PROGS)
 

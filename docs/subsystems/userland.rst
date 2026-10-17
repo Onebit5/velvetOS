@@ -208,6 +208,16 @@ the programs
    it does tidily: every program but init asked to stop, its services
    stopped, and the disk written out and closed. only root may ask.
 
+``login``
+   the door, which used to be in the kernel's shell. it clears its
+   console, greets with the system's name from ``/boot/etc/os-release``
+   and with ``/boot/welcome.txt``, asks for a name and a word, the word
+   with the echo off, and checks them against ``/boot/passwd``: one
+   answer for a wrong name and a wrong word, since saying which hands
+   over half of it. then it sets ``USER`` and ``HOME``, becomes the user
+   with ``setuid``, and becomes ``/bin/sh`` with ``execv``, so the shell
+   is the same process, on the same console, rather than one beside it.
+
 ``margaret``
    the editor. the text lives in ``textbuf.c``, a separate file because it
    is the half that can be *tested*: an editor is a drawing loop wrapped
