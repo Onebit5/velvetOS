@@ -151,6 +151,17 @@ the programs
    missed the first afternoon spent working *inside* the machine rather
    than on it.
 
+``mem``, ``slabs``, ``ps``, ``vmm``, ``bt``, ``lspci``, ``disk``, ``parts``, ``cpus``, ``mount``
+   the kernel's reports, which used to be its shell's commands. each
+   prints one file of ``/proc``: ``meminfo``, ``slabinfo``, ``threads``,
+   ``vmm``, ``stack``, ``pci``, ``disk``, ``partitions``, ``cpuinfo`` and
+   ``mounts``. the kernel writes the text when it is read, with the same
+   function its shell printed it with, so a program and that shell say the
+   same thing. ``report.h`` reads a file in one go, because every read is
+   a fresh writing of it, and a table read in two pieces could come out
+   stitched from two moments. ``vmm`` and ``bt`` are root's, since they
+   say where the kernel keeps things.
+
 ``margaret``
    the editor. the text lives in ``textbuf.c``, a separate file because it
    is the half that can be *tested*: an editor is a drawing loop wrapped

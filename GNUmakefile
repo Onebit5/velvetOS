@@ -166,7 +166,12 @@ USER_PROGS := base/ramdisk/bin/hello base/ramdisk/bin/counter base/ramdisk/bin/f
               base/ramdisk/bin/theodore base/ramdisk/bin/patience \
               base/ramdisk/bin/diff base/ramdisk/bin/find base/ramdisk/bin/less \
               base/ramdisk/bin/wordcount base/ramdisk/bin/sha1sum \
-              base/ramdisk/bin/git
+              base/ramdisk/bin/git \
+              base/ramdisk/bin/mem base/ramdisk/bin/slabs \
+              base/ramdisk/bin/ps base/ramdisk/bin/vmm base/ramdisk/bin/bt \
+              base/ramdisk/bin/lspci base/ramdisk/bin/disk \
+              base/ramdisk/bin/parts base/ramdisk/bin/cpus \
+              base/ramdisk/bin/mount
 
 userland: $(USER_PROGS)
 
@@ -278,6 +283,7 @@ base/ramdisk/bin/git: userland/git.c userland/gitobj.c userland/gitio_velvet.c u
 	      obj/user_args.o obj/user_difflib.o obj/libc.a -o $@
 
 base/ramdisk/bin/%: userland/%.c userland/syscall.h $(UAPI) userland/args.h userland/lines.h \
+               userland/report.h \
                userland/textbuf.h userland/difflib.h \
                obj/user_args.o obj/user_textbuf.o obj/user_difflib.o \
                toolchain/linker.ld obj/libc.a
