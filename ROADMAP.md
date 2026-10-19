@@ -162,9 +162,12 @@ for the rest of the session.
 **0.5.4 tls.** 0.3.6 could fetch a file and could not talk to most of the
 web, and said so: there is no tls here, and a redirect to https is
 reported rather than followed. this is that limit lifted: tls 1.3, one
-cipher suite, no legacy anything, a library in the libc on top of velvet
-0.5.2's arithmetic and velvet 0.5.0's randomness. **the most
-arithmetic-heavy version since the compiler.**
+cipher suite, no legacy anything, a library in the libc on velvet 0.5.0's
+randomness, with the arithmetic it is made of, aes-gcm, hkdf and x25519,
+written here beside 0.5.1's argon2. the kernel uses none of it, so none
+of it is the kernel's, and it is checked the way velvet 0.5.2 checks its
+own: published vectors, python over the same inputs, and no branch on a
+secret. **the most arithmetic-heavy version since the compiler.**
 
 the handshake is not the hard half. the hard half is that a certificate is
 a claim about *dates*, and this machine reads the cmos clock once at boot
@@ -205,9 +208,9 @@ and philemon's first stage ends at byte 365 to leave room for it), and
 every step before the one that commits has to leave the disk as it was.
 
 **what this series deliberately does not reach.** no remote login: a
-machine with users on a wire wants ssh, and ssh needs velvet 0.5.2's
-primitives *and* a pseudo-terminal layer, which is velvet 0.6.7. that is
-0.6.6 here, once both exist.
+machine with users on a wire wants ssh, and ssh needs 0.5.4's primitives
+*and* a pseudo-terminal layer, which is velvet 0.6.7. that is 0.6.6 here,
+once both exist.
 
 ## 0.6.x: the machine runs software it did not write
 
@@ -280,7 +283,7 @@ tightest: the ramdisk currently carries a copy of `printf` per program.
 the kernel's half, mapping the loader a program names, is velvet 0.6.9.
 
 **0.6.6 a remote shell.** ssh needs the primitives and a pty layer, and
-both were somewhere else; velvet 0.5.2 and 0.6.7 are those. the value is
+both were somewhere else; 0.5.4 and velvet 0.6.7 are those. the value is
 the same as every other port here: the test is somebody else's client,
 speaking a protocol we did not design, against a server that has to be
 right about every byte of it.
@@ -288,7 +291,7 @@ right about every byte of it.
 **0.6.7 a package, and somewhere to put it.** once software arrives from
 elsewhere it has a name, a version, a signature and a list of what else it
 needs. ustar with a manifest (the archive format this machine already
-reads twice over), signed with velvet 0.5.2's primitives, named with
+reads twice over), signed with 0.5.4's primitives, named with
 0.3.17's sha-1, and a `/usr` for it to land in. the point is not
 convenience: it is that software from outside should arrive the same way
 every time, and be removable, or the disk becomes a place things are
