@@ -87,7 +87,9 @@ offer a reboot, from inside velvetOS, in place: the source has been on the
 disk since 0.3.26 and everything that reads it is already ours. velvet
 0.4.3 and 0.4.4 are what make it safe to try: a boot that can choose
 between two kernels, and one that falls back to the old kernel when the
-new one does not come up. *ends with the test 0.4.2 describes performed
+new one does not come up. which moment counts as up is this tree's to
+say: init says a boot was good once every console has its login, and a
+kernel that never gets that far is the one velvet falls back from. *ends with the test 0.4.2 describes performed
 for real: one line of the kernel changed on the machine itself, `make`,
 install, reboot into the change, and the commit made by the git that lives
 here.*
