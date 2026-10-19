@@ -445,12 +445,13 @@ run: $(BOOTIMG) $(DISK)
 # extents and all. and the work image is made smaller than the partition
 # it goes in, and that is deliberate: 8 MiB of filesystem inside 24 MiB
 # of partition is exactly the situation `resize` exists for, so `make
-# run` boots a machine with something to grow
+# run` boots a machine with something to grow. both are labelled here,
+# by name: the formatter's default label is the kernel's to choose
 $(DISK): $(KT)/mkext4 $(KERNEL_SRC)/tools/mkfat.py $(KERNEL_SRC)/tools/mkdisk.py \
          $(shell find base/diskroot -type f 2>/dev/null)
 	@mkdir -p bin/workroot
 	@echo 'somewhere to work that is not the system' > bin/workroot/readme.txt
-	@$(KT)/mkext4 bin/diskroot.img base/diskroot 32 >/dev/null
+	@$(KT)/mkext4 bin/diskroot.img base/diskroot 32 velvetos >/dev/null
 	@$(KT)/mkext4 bin/work.img bin/workroot 8 work >/dev/null
 	@dd if=/dev/zero of=bin/work.img bs=1M count=0 seek=24 2>/dev/null
 	@python3 $(KERNEL_SRC)/tools/mkfat.py  bin/compendium.img base/diskroot 24 >/dev/null

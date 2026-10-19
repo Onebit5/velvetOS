@@ -38,10 +38,11 @@ trap 'rm -rf "$DISK" "$SYSIMG" "$WORKIMG" "$EMPTY"' EXIT
 
 # the formatter is the kernel's, built by `make kernel` into bin/kernel/,
 # and the partitioner is the kernel's too, in its checkout, which the
-# makefile names in KERNEL_SRC
+# makefile names in KERNEL_SRC. the label is ours, so it is given rather
+# than left to the formatter: "disk at the root" below checks for it
 MKEXT4="$HERE/../bin/kernel/tests/mkext4"
 KSRC="${KERNEL_SRC:-$HERE/../obj/velvet}"
-"$MKEXT4" "$SYSIMG" "$HERE/../base/diskroot" 48 >/dev/null
+"$MKEXT4" "$SYSIMG" "$HERE/../base/diskroot" 48 velvetos >/dev/null
 echo "somewhere to work that is not the system" > "$EMPTY/readme.txt"
 "$MKEXT4" "$WORKIMG" "$EMPTY" 8 work >/dev/null
 # and the room to grow into, which is a partition longer than the
