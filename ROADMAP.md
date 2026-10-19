@@ -359,3 +359,13 @@ kernel's core dumps are: the same program debugged here and with gdb on
 the development machine, agreeing on every frame. *ends when a program
 that crashes is caught here, its stack named line by line, and stepped
 past the fault.*
+
+**0.8.1 a tracer.** every call a program makes, as it makes it, with its
+arguments in words: a path as the path, a flags word as the names of its
+flags, a descriptor as the file it is. the stream is velvet 0.8.4's and
+is all numbers; the words are a table per call, kept beside the uapi
+headers it reads, and a call the table does not know is printed as
+numbers rather than guessed at. checked against the same static program
+traced with strace on linux, call for call, once velvet 0.6.4 gives both
+machines the same numbers. *ends when a shell's pipeline is traced here
+and every call in it reads as words.*
