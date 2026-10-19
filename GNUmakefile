@@ -204,50 +204,27 @@ userland: $(USER_PROGS)
 # that writes `main` gets it, which is exactly the rule that lets old
 # programs and ported ones share a build.
 LIBC_SRCS := userland/libc/stdlib.c userland/libc/format.c \
-             userland/libc/stdio.c userland/libc/start.c
+             userland/libc/stdio.c userland/libc/start.c \
+             userland/libc/string.c userland/libc/hash.c \
+             userland/libc/inflate.c userland/libc/deflate.c \
+             userland/libc/epoch.c
 LIBC_OBJS := $(patsubst userland/libc/%.c,obj/libc_%.o,$(LIBC_SRCS))
 LIBC_HDRS := userland/libc/string.h userland/libc/stdlib.h userland/libc/stdio.h \
-             userland/libc/format.h
+             userland/libc/format.h userland/libc/hash.h \
+             userland/libc/deflate.h userland/libc/epoch.h
 
-obj/libc_%.o: userland/libc/%.c $(LIBC_HDRS) userland/syscall.h $(UAPI)
-	@mkdir -p $(@D)
-	$(CC) $(UCFLAGS) -c $< -o $@
-
+# the string functions, the hashes, deflate and the date arithmetic are
+# the library's own. they began as copies of the kernel's, taken at
+# velvet 0.4.2, and stay here rather than being compiled out of its
+# lib/: that directory is the kernel's insides, which it changes as it
+# likes, and deflate is in it only for git, which is ours. what a
+# program shares with the kernel is include/uapi/velvet/ and nothing
+# else.
+#
 # the hashes go in the archive rather than into every program, which is
 # what an archive is for: a member is pulled in only if something
-# undefined needs it, so `sha1sum` gets them and `echo` does not. the
-# source is the kernel's: one implementation, checked once, and the
-# alternative is the same file twice, which this project already has one
-# of and does not need two
-# the string functions, from the kernel's copy of them, which is now
-# the only copy. compiled twice: freestanding up there, hosted here.
-#
-# the kernel being fetched changes none of this. $(KERNEL_SRC) is
-# always the kernel this system is built with, so the library is built
-# from the same lines the kernel was, and moving the pin moves both
-# together
-obj/libc_string.o: $(KERNEL_SRC)/lib/string.c $(KERNEL_SRC)/include/velvet/string.h
-	@mkdir -p $(@D)
-	$(CC) $(UCFLAGS) -c $< -o $@
-
-obj/libc_hash.o: $(KERNEL_SRC)/lib/hash.c $(KERNEL_SRC)/include/velvet/hash.h
-	@mkdir -p $(@D)
-	$(CC) $(UCFLAGS) -c $< -o $@
-
-# and the same for deflate, which a ring 3 program will need before it
-# can read a git object, and which being in here at all proves it
-# compiles freestanding, with no libc of its own underneath it
-obj/libc_inflate.o: $(KERNEL_SRC)/lib/inflate.c $(KERNEL_SRC)/include/velvet/deflate.h
-	@mkdir -p $(@D)
-	$(CC) $(UCFLAGS) -c $< -o $@
-
-obj/libc_deflate.o: $(KERNEL_SRC)/lib/deflate.c $(KERNEL_SRC)/include/velvet/deflate.h
-	@mkdir -p $(@D)
-	$(CC) $(UCFLAGS) -c $< -o $@
-
-# the date conversion, so a commit can carry one. there is no clock
-# syscall; a file's timestamp and this are between them enough
-obj/libc_epoch.o: $(KERNEL_SRC)/lib/epoch.c $(KERNEL_SRC)/include/velvet/epoch.h
+# undefined needs it, so `sha1sum` gets them and `echo` does not
+obj/libc_%.o: userland/libc/%.c $(LIBC_HDRS) userland/syscall.h $(UAPI)
 	@mkdir -p $(@D)
 	$(CC) $(UCFLAGS) -c $< -o $@
 
@@ -256,8 +233,7 @@ obj/libc_epoch.o: $(KERNEL_SRC)/lib/epoch.c $(KERNEL_SRC)/include/velvet/epoch.h
 # thing that would stop it is a timestamp. whether that is ar's default
 # is decided when binutils is compiled, so it is asked for rather than
 # assumed
-obj/libc.a: $(LIBC_OBJS) obj/libc_string.o obj/libc_hash.o \
-            obj/libc_inflate.o obj/libc_deflate.o obj/libc_epoch.o
+obj/libc.a: $(LIBC_OBJS)
 	$(AR) rcsD $@ $^
 
 # the three helpers most programs link, each compiled once by a rule of
@@ -493,10 +469,11 @@ disk:
 # them.
 
 HOSTCC    := gcc
-HOSTFLAGS := -std=gnu11 -Wall -Wextra -Wno-stringop-truncation -Wno-stringop-overread -g -DVELVETOS_HOSTED -I$(KERNEL_SRC)/include -I$(KERNEL_SRC)/arch/x86_64/include -DVELVETOS_ARCH_X86_64
+HOSTFLAGS := -std=gnu11 -Wall -Wextra -Wno-stringop-truncation -Wno-stringop-overread -g -DVELVETOS_HOSTED -I$(KERNEL_SRC)/include
 
 TEST_BINS := bin/tests/args bin/tests/libc bin/tests/textbuf \
-             bin/tests/difflib bin/tests/git bin/tests/shparse
+             bin/tests/difflib bin/tests/git bin/tests/shparse \
+             bin/tests/hash bin/tests/inflate bin/tests/epoch
 
 bin/tests/args:     tests/test_args.c     userland/args.c
 # the shell's line parser: words, quotes, $ and the operators, which is the
@@ -507,9 +484,8 @@ bin/tests/shparse:  tests/test_shparse.c  userland/shparse.c
 # `libc_get_pages` is the one seam: what is tested is the real
 # allocator with only the source of memory replaced
 bin/tests/libc:     tests/test_libc.c     userland/libc/stdlib.c \
-                    userland/libc/format.c $(KERNEL_SRC)/lib/string.c
+                    userland/libc/format.c userland/libc/string.c
 bin/tests/libc:     SRCS = tests/test_libc.c
-bin/tests/libc:     HOSTFLAGS += -I$(KERNEL_SRC)
 # what an editor edits. an editor is a drawing loop around a data
 # structure: the drawing needs a terminal and the structure needs
 # nothing, and the structure is the half where a bug eats a file
@@ -522,9 +498,20 @@ bin/tests/difflib:  tests/test_difflib.c  userland/difflib.c
 # tool tools/gitcheck.py uses to build a whole repository, which real
 # git is then asked to read
 bin/tests/git:      tests/test_git.c      userland/gitobj.c userland/gitio_host.c \
-                    $(KERNEL_SRC)/lib/hash.c $(KERNEL_SRC)/lib/inflate.c \
-                    $(KERNEL_SRC)/lib/deflate.c
+                    userland/libc/hash.c userland/libc/inflate.c \
+                    userland/libc/deflate.c
 bin/tests/git:      HOSTFLAGS += -Iuserland
+# sha-1, crc32 and adler32, a suite with no arguments and a hashing tool
+# with some, which is how tools/hashcheck.py drives it against python,
+# zlib and git
+bin/tests/hash:     tests/test_hash.c     userland/libc/hash.c
+# deflate and inflate, a suite with no arguments and a compressor or a
+# decompressor with some, which is how tools/zlibcheck.py runs it
+# against python's zlib and a real git repository
+bin/tests/inflate:  tests/test_inflate.c  userland/libc/inflate.c \
+                    userland/libc/deflate.c userland/libc/hash.c
+# a date as a number and back, against the host's timegm
+bin/tests/epoch:    tests/test_epoch.c    userland/libc/epoch.c
 
 # not a suite that checks itself: it is the assembler, built as a
 # program so tools/asmcheck.py can run it against nasm. an assembler
@@ -566,7 +553,7 @@ bin/tests/asm: tests/test_asm.c toolchain/asmlib.c toolchain/asmlib.h \
 # passing, which is the worst possible failure for a test suite, since
 # it is indistinguishable from the change being harmless.
 TEST_HEADERS := $(shell find userland toolchain tools -name '*.h' 2>/dev/null) \
-                $(shell find $(KERNEL_SRC)/include -name '*.h' 2>/dev/null)
+                $(UAPI)
 $(TEST_BINS): $(TEST_HEADERS)
 
 # SRCS overrides what gets compiled, for tests that #include a .c file
@@ -605,6 +592,19 @@ asmcheck: bin/tests/asm
 .PHONY: gitcheck
 gitcheck: bin/tests/git
 	@python3 tools/gitcheck.py
+
+# the sums under it, against python, zlib and `git hash-object`, every
+# input fed again in chunks either side of the block size, since a
+# single buffer hashed in one go is the case that cannot fail
+.PHONY: hashcheck
+hashcheck: bin/tests/hash
+	@python3 tools/hashcheck.py
+
+# deflate against python's zlib both ways round, at every level, and
+# inflate against objects real git wrote
+.PHONY: zlibcheck
+zlibcheck: bin/tests/inflate
+	@python3 tools/zlibcheck.py
 
 # and make against gnu make. a fixture is a makefile and a sequence of
 # edits, replayed against both, the edits being the point, since a
@@ -734,6 +734,18 @@ test: $(KERNEL_OUT) $(BOOTIMG) $(USER_PROGS) $(RAMDISK) $(TEST_BINS) \
 	fi; \
 	printf '  %-10s ' gitcheck; \
 	if out=$$(python3 tools/gitcheck.py 2>&1); then \
+		echo 'ok'; \
+	else \
+		echo 'FAILED'; echo "$$out" | sed 's/^/    /'; fail=1; \
+	fi; \
+	printf '  %-10s ' hashcheck; \
+	if out=$$(python3 tools/hashcheck.py 2>&1); then \
+		echo 'ok'; \
+	else \
+		echo 'FAILED'; echo "$$out" | sed 's/^/    /'; fail=1; \
+	fi; \
+	printf '  %-10s ' zlibcheck; \
+	if out=$$(python3 tools/zlibcheck.py 2>&1); then \
 		echo 'ok'; \
 	else \
 		echo 'FAILED'; echo "$$out" | sed 's/^/    /'; fail=1; \

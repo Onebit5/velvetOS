@@ -166,8 +166,7 @@ the programs
    two more of the kernel shell's commands. ``dmesg`` asks for the
    kernel's log with ``klogctl``, how big it is and then all of it, since
    the log is not a file. ``date`` turns the kernel's count of seconds
-   into words with velvet's own date arithmetic, which this tree compiles
-   into its library.
+   into words with the library's date arithmetic, ``epoch.c``.
 
 ``sync``, ``fsck``, ``resize``
    the filesystem commands. the kernel still does the work: it writes out

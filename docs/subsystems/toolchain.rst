@@ -202,19 +202,45 @@ the kernel's own drivers, so they went to velvet with them.
 where the disk image and the self-hosted build pick them up, and
 velvet's ``docs/subsystems/tools.rst`` describes each.
 
-hashes and deflate
-------------------
+hashes, deflate and dates
+-------------------------
 
-``lib/hash.c`` and ``lib/deflate.c`` are the kernel's, but
-they are prerequisites for git rather than features of the kernel: a git
-repository is addressed by the sha-1 of what is in it, and every object on
-disk is a zlib stream. ``libc.a`` compiles both out of its checkout rather than
-keeping copies, so git uses the same lines the kernel does, checked once.
-velvet's ``docs/subsystems/lib.rst`` says what each sum is for, and its
-``hashcheck.py`` and ``zlibcheck.py`` how they are checked (against python,
-zlib and git itself, including the case that cannot fail. a single buffer
+``userland/libc/hash.c``, ``deflate.c``, ``inflate.c`` and ``epoch.c`` are
+prerequisites for git rather than anything most programs ask for: a git
+repository is addressed by the sha-1 of what is in it, every object on disk
+is a zlib stream, and a commit carries a date. they began as the kernel's,
+copied out of velvet 0.4.2, and they are the library's own now. the
+kernel's ``lib/`` is its insides, which it changes as it likes, and it has
+no use for deflate at all; a library compiled out of another project's
+insides breaks the day that project tidies them.
+
+the sums are three because they answer three questions: sha-1 names an
+object, crc32 is what gpt and zip check, and adler32 is how every zlib
+stream ends. each of them can be fed a piece at a time, because an object
+can be larger than anything worth holding at once. ``sha1sum`` prints all
+three.
+
+``long inflate(const void *in, size_t in_len, void *out, size_t out_cap)``
+    the compressed data alone, as RFC 1951 describes it.
+
+``long zlib_inflate(const void *in, size_t in_len, void *out, size_t out_cap)``
+    a zlib stream: two bytes of header, the same data, and the adler32 of the
+    uncompressed bytes checked on the way out. this is the one a git object
+    needs. ``deflate`` and ``zlib_deflate`` are the same two the other way
+    round.
+
+all four return the bytes produced or a negative error, and the caller says
+how much room there is. a decompressor that cannot be told when to stop
+writes past the end of a buffer the day somebody hands it a hostile file.
+
+``epoch.c`` turns a date into seconds since 1970 and back, and the two
+directions have to agree for every date, which is what its suite spends
+its time on, against the host's ``timegm``.
+
+``hashcheck.py`` and ``zlibcheck.py`` check the rest against python, zlib
+and git itself, including the case that cannot fail: a single buffer
 hashed in one go, which is why every input is fed again in chunks of 1, 7,
-63, 64 and 65 bytes).
+63, 64 and 65 bytes.
 
 git
 ---

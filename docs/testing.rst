@@ -70,6 +70,12 @@ failing case. all of them:
    the git object store, with no arguments; with some, the tool
    ``gitcheck`` builds a whole repository with.
 
+``hash``, ``inflate``, ``epoch``
+   the library's sha-1, crc32 and adler32, its deflate and inflate, and
+   its dates. the first two are tools as well, with arguments, which is
+   how ``hashcheck`` and ``zlibcheck`` drive them; the third holds every
+   conversion against the host's ``timegm``.
+
 the foreign-implementation checks
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -94,6 +100,14 @@ implementation exists, the project tests against that instead:
 ``gitcheck``
    write a repository with this project's git and read it with real git.
    ``fsck --strict`` and all.
+
+``hashcheck``
+   the three sums against python, ``zlib`` and ``git hash-object``, with
+   every input fed again in pieces either side of the block size.
+
+``zlibcheck``
+   deflate against python's ``zlib`` both ways round at all ten levels,
+   and inflate over objects a real git wrote.
 
 ``srccheck``
    read the source tree back out of the boot image and hold it against the

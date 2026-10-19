@@ -61,11 +61,11 @@ the line between this tree and the kernel
 -----------------------------------------
 
 **this tree uses the kernel's files and the kernel never uses this tree's.**
-the libc compiles the kernel's ``lib/string.c``, ``hash.c``, ``deflate.c``,
-``inflate.c`` and ``epoch.c`` rather than keeping copies; git's object store
-includes the kernel's headers, from its ``include/``, for the same reason;
 every program includes the syscall numbers and what the calls take from its
-``include/uapi/velvet/``; the disk image is written by its
+``include/uapi/velvet/``, which is the one part of the kernel's source a
+program sees; the library's string functions, hashes, deflate and dates
+are its own, in ``userland/libc/``, and not the kernel's ``lib/``, which
+is the kernel's insides; the disk image is written by its
 ``tools/mkboot.py`` and the disks by its ``mkext4``; and the self-hosted
 build reads its ``sources.mk`` for what the kernel is made of. every one of
 those reaches into the release ``kernel-release.mk`` names, through the one

@@ -9,7 +9,7 @@
 #include "args.h"
 #include "gitobj.h"
 #include "gitio.h"
-#include <velvet/epoch.h>
+#include "libc/epoch.h"
 #include "difflib.h"
 
 static const struct program git_prog = {

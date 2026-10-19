@@ -7,7 +7,7 @@
 
 #include "syscall.h"
 #include "args.h"
-#include <velvet/hash.h>
+#include "libc/hash.h"
 
 static const struct opt sha1sum_opts[] = {
     { 'c', "crc32", false, "crc32 instead, as gpt and zip use" },
