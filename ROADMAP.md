@@ -236,7 +236,7 @@ made the shell a program, with quoting and its jobs run through the
 kernel's calls, it kept that language so the scripts written for it kept
 running. this is the other side of that argument: `fi` and `done`, `&&`,
 `||`, subshells, `$( )` and functions, in the same program. the kernel's
-own shell becomes a monitor in velvet 0.4.2, for when the disk is broken,
+own shell became a monitor in velvet 0.4.2, for when the disk is broken,
 which is the better outcome than replacing it: one shell for that, and
 one for work.
 

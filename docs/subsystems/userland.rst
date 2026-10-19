@@ -304,16 +304,18 @@ say, and the kernel starts ``/init`` and nothing else of the system's.
 the kernel keeps its own services, the flusher and the network, beside
 it.
 
-``init`` starts a ``login`` on each of the four consoles. each is forked
-into a group of its own, attached to its console with ``ttyattach``,
-which makes it the program that console belongs to, given ``TTY`` for
-the prompt, and only then made ``login``. when a session ends, logging
-out or otherwise, ``init`` starts that console's login again, unless it
-keeps ending as soon as it starts, in which case it says so and leaves
-it down. every orphan on the machine is handed to pid 1, and ``init``
-collects them as it collects the sessions. the signals that end a
-process are not for it, since pid 1 ending is the end of the machine,
-which the kernel answers with a panic.
+``init`` starts a ``login`` on each of the four consoles. the fifth is
+the kernel's monitor, alt+5, which nobody logs into and which runs no
+programs: it is there for when the system is what has gone wrong. each
+login is forked into a group of its own, attached to its console with
+``ttyattach``, which makes it the program that console belongs to, given
+``TTY`` for the prompt, and only then made ``login``. when a session
+ends, logging out or otherwise, ``init`` starts that console's login
+again, unless it keeps ending as soon as it starts, in which case it
+says so and leaves it down. every orphan on the machine is handed to pid
+1, and ``init`` collects them as it collects the sessions. the signals
+that end a process are not for it, since pid 1 ending is the end of the
+machine, which the kernel answers with a panic.
 
 shutting down is ``poweroff`` or ``reboot``, and the kernel does it:
 everything but ``init`` asked to stop, its own services stopped, and the
