@@ -10,6 +10,12 @@ all: a.o b.o
 	@echo "$(CC) $< -o $@ stem=$*"
 	@cat $< > $@
 
+# what a dependency file from -MMD says: one more prerequisite for a
+# target whose recipe is the pattern's. the pattern's own prerequisite
+# still comes first, so $< is the source and not the header, however
+# the header got there
+c.o: c.h
+
 # a target that names the same prerequisite twice, so $^ and $+ differ
 double: a.o a.o b.o
 	@echo "^=$^"

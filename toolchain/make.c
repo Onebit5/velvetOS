@@ -1362,9 +1362,21 @@ static int build(const char *name, const char *needed_by)
             if (!usable) {
                 continue;
             }
-            for (int j = 0; j < candidates && prereqs < MAX_LIST; j++) {
-                prereq[prereqs++] = made[j];
+            /*
+             * the rule that brought the recipe goes first here as well,
+             * ahead of what the explicit rules said. a dependency file
+             * names the source too, and when it is left over from a
+             * build of another tree, `$<` would compile that tree's copy
+             */
+            int keep = prereqs;
+            if (keep > MAX_LIST - candidates) {
+                keep = MAX_LIST - candidates;
             }
+            memmove(prereq + candidates, prereq, (size_t)keep * sizeof *prereq);
+            for (int j = 0; j < candidates; j++) {
+                prereq[j] = made[j];
+            }
+            prereqs = candidates + keep;
             recipe = &rule[i];
             snprintf(stem, sizeof stem, "%s", try);
             named = true;

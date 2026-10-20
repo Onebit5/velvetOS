@@ -7,3 +7,6 @@ touch a.c
 run
 # %.o: %.c is no use at all for a .o with no .c anywhere near it
 run ghost.o
+# an explicit rule adding to what the pattern brings
+write c.c c.h
+run c.o
