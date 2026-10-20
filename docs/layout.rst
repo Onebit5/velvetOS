@@ -14,7 +14,8 @@ at a glance
 ::
 
     userland/          what runs on the machine: the libc and the programs
-      libc/            start, stdio, stdlib, format, string
+      libc/            start, stdio, stdlib, format, string, and the
+                       hashes, deflate and dates git and date need
     toolchain/         what builds the machine: the assembler, the linker,
                        make and ar
     base/ramdisk/      the files packed into the boot tar (input), and the
