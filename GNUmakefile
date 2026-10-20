@@ -74,6 +74,20 @@ endif
 ifneq ($(KERNEL_FOUND),0)
 $(error $(KERNEL_SRC) holds no kernel this tree will build, for the reason above)
 endif
+
+# what was built here was built from one kernel, and an object keeps no
+# record of which: a dependency file names the tree it was made in, and
+# a header or a flag that differs between two trees changes nothing that
+# make can see. so going between the release and a checkout, or moving
+# the pin, would link whatever was built last wherever it is newer than
+# the other tree's source. a different kernel is a clean build, the
+# fetched release excepted
+KERNEL_FROM := $(abspath $(KERNEL_SRC)) $(KERNEL_VERSION)
+ifneq ($(KERNEL_FROM),$(shell cat obj/kernel-from 2>/dev/null))
+$(shell rm -rf bin base/ramdisk/bin base/ramdisk/init \
+            $(filter-out $(KERNEL_RELEASE),$(wildcard obj/*)) && \
+        mkdir -p obj && echo '$(KERNEL_FROM)' > obj/kernel-from)
+endif
 endif
 
 #
