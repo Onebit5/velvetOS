@@ -362,7 +362,8 @@ $(RAMDISK): $(USER_PROGS) $(RAMDISK_FILES)
 SOURCE_FILES := GNUmakefile README.md CHANGELOG.md ROADMAP.md \
                 LICENSE .gitignore kernel-release.mk \
                 CONTRIBUTING.md CODE_OF_CONDUCT.md \
-                $(shell find .github userland toolchain tools tests docs -type f | sort) \
+                $(shell find .github userland toolchain tools tests docs pending \
+                        -type f | sort) \
                 $(shell find base/ramdisk base/diskroot -type f \
                         -not -path 'base/ramdisk/bin/*' | sort)
 KERNEL_FILES := $(shell cd $(KERNEL_SRC) 2>/dev/null && \

@@ -24,6 +24,9 @@ at a glance
     tests/             the host suites, run by `make test`, and the
                        fixtures the toolchain is checked against
     tools/             the toolchain's checkers and the boot test
+    pending/           what velvet 0.4.3 took out of the kernel, the network
+                       clients and the installer, as velvet had them and
+                       not built, until each is a program (ROADMAP 0.4.2)
     docs/              this
     GNUmakefile        the build
     kernel-release.mk  which velvet release the build fetches, by its
