@@ -52,7 +52,24 @@ checked against the GNU one it replaces. writing a C compiler would mean
 the kernel could only use the C that compiler had learned, which is a
 hostage rather than a tool, and nothing above needs one.
 
-**0.4.2 the disk that continues the project.** what is left over is not a
+**0.4.2 the network and the installer, as programs.** velvet 0.4.3 took
+dhcp, the resolver, http and the installer out of the kernel, and they are
+this tree's to write now. they are not written from nothing: `pending/`
+holds them as velvet had them, the protocols pure already and tested
+against captured packets, and each becomes a program the way the kernel's
+shell became `sh` in 0.4.1. `dhcp`, started by init, leases the address
+and hands it to the kernel, and writes the name server it was offered into
+`/etc/resolv.conf`; the resolver is the library's, and `host` asks it;
+`fetch` pulls a file down over http; and `install` copies the medium the
+machine booted from onto a blank drive. dhcp and install need velvet
+0.4.4, a call that sets the address and a drive a program can write by
+sector, so this version moves the pin to it, and the self-hosted build's
+arch define becomes `VELVET_ARCH_X86_64` on the way. *ends when the boot
+test leases an address, resolves a name and fetches a file, all from
+ring 3, a machine installs itself onto a blank drive that then boots, and
+`pending/` is gone.*
+
+**0.4.3 the disk that continues the project.** what is left over is not a
 compiler, and none of it was ever going to be. a **ustar writer**, named
 at 0.3.26 as the gap: this machine reads two archives and can write
 neither, and `tar` lives on the development machine. `srcstamp` in C,
@@ -74,22 +91,23 @@ one. no debugger, so a fault is read the way faults have been read here
 since the beginning: a backtrace, a symbol, and the source that is now
 sitting on the same disk.
 
-**0.4.3 installing.** 0.4.2 gives the machine the pieces to write an
-image; this is the program that does it, onto a disk that is not the one
-it booted from: a partition table, philemon in the first sector, the
+**0.4.4 installing what was built.** 0.4.3 gives the machine the pieces
+to write an image, and 0.4.2's `install` copies the medium the machine
+booted from; this writes the image the machine built instead, onto a disk
+that is not the one it booted from: a partition table, philemon in the first sector, the
 kernel, the ramdisk and the source, written by velvetOS on the machine
 being installed. the development host is not in this sentence, and
 neither are `mkboot`, `mkfat` and `mkext4`. *ends when a blank disk goes
 in beside the system disk and comes out booting on another machine.*
 
-**0.4.4 the machine replaces its own kernel.** build, link, install and
+**0.4.5 the machine replaces its own kernel.** build, link, install and
 offer a reboot, from inside velvetOS, in place: the source has been on the
 disk since 0.3.26 and everything that reads it is already ours. velvet
-0.4.3 and 0.4.4 are what make it safe to try: a boot that can choose
+0.4.5 and 0.4.6 are what make it safe to try: a boot that can choose
 between two kernels, and one that falls back to the old kernel when the
 new one does not come up. which moment counts as up is this tree's to
 say: init says a boot was good once every console has its login, and a
-kernel that never gets that far is the one velvet falls back from. *ends with the test 0.4.2 describes performed
+kernel that never gets that far is the one velvet falls back from. *ends with the test 0.4.3 describes performed
 for real: one line of the kernel changed on the machine itself, `make`,
 install, reboot into the change, and the commit made by the git that lives
 here.*
@@ -300,9 +318,9 @@ every time, and be removable, or the disk becomes a place things are
 poured.
 
 **0.6.8 the machine fetches its own source.** git in this image can commit
-and cannot reach anything, and 0.6.6 proved the primitives. this is dns, a
-route off the one segment, the ssh that is already here or the tls from
-0.5.4, and packfiles at both ends: `clone`, `pull` and `push` against a
+and cannot reach anything, and 0.6.6 proved the primitives. this is
+0.4.2's resolver put to use, a route off the one segment, the ssh that is
+already here or the tls from 0.5.4, and packfiles at both ends: `clone`, `pull` and `push` against a
 real remote. the pull request stays somebody else's problem, which is the
 point: a push is a ref, and a browser is not required to open one. *ends
 when this machine clones velvetOS from where it is hosted, builds it,
