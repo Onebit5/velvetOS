@@ -41,7 +41,7 @@ LD   := ld
 #
 # the kernel is a project of its own, velvet, and this tree does not
 # carry it. kernel-release.mk names one release of it by its version,
-# and tools/kernel.py clones that release's tag into obj/velvet/ before
+# and tools/release.py clones that release's tag into obj/velvet/ before
 # anything below reads a file of it, and again only when the version
 # changes. it is done here, while the makefile is read, because half of
 # what follows finds the kernel's files with $(shell find) at that
@@ -63,39 +63,63 @@ include kernel-release.mk
 KERNEL_RELEASE := obj/velvet
 KERNEL_SRC ?= $(KERNEL_RELEASE)
 
-ifneq ($(if $(MAKECMDGOALS),$(filter-out clean distclean lint kernel-update,$(MAKECMDGOALS)),all),)
+# and the loader, philemon, the same way: philemon-release.mk names a
+# release, tools/release.py clones its tag into obj/philemon/, and
+#
+#   make PHILEMON_URL=../philemon   the same release, out of a local copy
+#   make PHILEMON_SRC=../philemon   that checkout as it is
+include philemon-release.mk
+
+PHILEMON_RELEASE := obj/philemon
+PHILEMON_SRC ?= $(PHILEMON_RELEASE)
+
+NO_TREE_GOALS := clean distclean lint kernel-update philemon-update
+
+ifneq ($(if $(MAKECMDGOALS),$(filter-out $(NO_TREE_GOALS),$(MAKECMDGOALS)),all),)
 ifeq ($(KERNEL_SRC),$(KERNEL_RELEASE))
-KERNEL_FOUND := $(shell python3 tools/kernel.py fetch '$(KERNEL_SRC)' \
+KERNEL_FOUND := $(shell python3 tools/release.py velvet fetch '$(KERNEL_SRC)' \
                   '$(KERNEL_URL)' '$(KERNEL_VERSION)' >&2; echo $$?)
 else
-KERNEL_FOUND := $(shell python3 tools/kernel.py local '$(KERNEL_SRC)' \
+KERNEL_FOUND := $(shell python3 tools/release.py velvet local '$(KERNEL_SRC)' \
                   '$(KERNEL_VERSION)' >&2; echo $$?)
 endif
 ifneq ($(KERNEL_FOUND),0)
 $(error $(KERNEL_SRC) holds no kernel this tree will build, for the reason above)
 endif
+ifeq ($(PHILEMON_SRC),$(PHILEMON_RELEASE))
+PHILEMON_FOUND := $(shell python3 tools/release.py philemon fetch \
+                    '$(PHILEMON_SRC)' '$(PHILEMON_URL)' '$(PHILEMON_VERSION)' \
+                    >&2; echo $$?)
+else
+PHILEMON_FOUND := $(shell python3 tools/release.py philemon local \
+                    '$(PHILEMON_SRC)' '$(PHILEMON_VERSION)' >&2; echo $$?)
+endif
+ifneq ($(PHILEMON_FOUND),0)
+$(error $(PHILEMON_SRC) holds no loader to build, for the reason above)
+endif
 
-# what was built here was built from one kernel, and an object keeps no
-# record of which: a dependency file names the tree it was made in, and
-# a header or a flag that differs between two trees changes nothing that
-# make can see. so going between the release and a checkout, or moving
-# the pin, would link whatever was built last wherever it is newer than
-# the other tree's source. a different kernel is a clean build, the
-# fetched release excepted
-KERNEL_FROM := $(abspath $(KERNEL_SRC)) $(KERNEL_VERSION)
-ifneq ($(KERNEL_FROM),$(shell cat obj/kernel-from 2>/dev/null))
+# what was built here was built from one kernel and one loader, and an
+# object keeps no record of which: a dependency file names the tree it
+# was made in, and a header or a flag that differs between two trees
+# changes nothing that make can see. so going between a release and a
+# checkout, or moving a pin, would link whatever was built last wherever
+# it is newer than the other tree's source. a different kernel or loader
+# is a clean build, the fetched releases excepted
+BUILT_FROM := $(abspath $(KERNEL_SRC)) $(KERNEL_VERSION) \
+              $(abspath $(PHILEMON_SRC)) $(PHILEMON_VERSION)
+ifneq ($(BUILT_FROM),$(shell cat obj/built-from 2>/dev/null))
 $(shell rm -rf bin base/ramdisk/bin base/ramdisk/init \
-            $(filter-out $(KERNEL_RELEASE),$(wildcard obj/*)) && \
-        mkdir -p obj && echo '$(KERNEL_FROM)' > obj/kernel-from)
+            $(filter-out $(KERNEL_RELEASE) $(PHILEMON_RELEASE), \
+                         $(wildcard obj/*)) && \
+        mkdir -p obj && echo '$(BUILT_FROM)' > obj/built-from)
 endif
 endif
 
 #
 # with the kernel in $(KERNEL_SRC), this tree asks it for what a system
-# needs (the kernel, philemon, and the C tools that write disks and
-# images) and says where to put them, so a build here leaves nothing in
-# the kernel's checkout and a build there never sees anything of this
-# one's.
+# needs (the kernel, and the C tools that write disks and link it) and
+# says where to put them, so a build here leaves nothing in the kernel's
+# checkout and a build there never sees anything of this one's.
 #
 # SOURCE is the one thing it is told that it could not work out for
 # itself. the kernel carries the hash of the source shipped beside it,
@@ -112,11 +136,19 @@ KMAKE := $(MAKE) --no-print-directory -C $(KERNEL_SRC) \
          BINDIR=$(CURDIR)/$(KBIN) OBJROOT=$(CURDIR)/$(KOBJ) \
          SOURCE=$(CURDIR)/$(SOURCE)
 
-KERNEL_OUT := $(KBIN)/$(KERNEL) $(KBIN)/boot/philemon.bin \
-              $(KBIN)/boot/philemon64.bin \
-              $(KT)/mkext4 $(KT)/mkboot $(KT)/gensyms $(KT)/bin2c
+KERNEL_OUT := $(KBIN)/$(KERNEL) \
+              $(KT)/mkext4 $(KT)/gensyms $(KT)/bin2c
 
-.PHONY: all kernel userland kernel-test run bootimg clean distclean FORCE
+# and philemon the same way, out of $(PHILEMON_SRC): his two halves, and
+# the image writer in C, which the self-hosted build writes its image with
+PBIN  := bin/philemon
+PMAKE := $(MAKE) --no-print-directory -C $(PHILEMON_SRC) \
+         BINDIR=$(CURDIR)/$(PBIN) OBJROOT=$(CURDIR)/obj/loader
+
+PHILEMON_OUT := $(PBIN)/philemon.bin $(PBIN)/philemon64.bin $(PBIN)/mkboot
+
+.PHONY: all kernel philemon userland kernel-test run bootimg clean distclean \
+        FORCE
 
 all: $(BOOTIMG)
 
@@ -127,7 +159,12 @@ all: $(BOOTIMG)
 kernel: $(KERNEL_OUT)
 
 $(KERNEL_OUT) &: $(SOURCE) FORCE
-	@$(KMAKE) kernel philemon tools
+	@$(KMAKE) kernel tools
+
+philemon: $(PHILEMON_OUT)
+
+$(PHILEMON_OUT) &: FORCE
+	@$(PMAKE)
 
 FORCE:
 
@@ -143,7 +180,13 @@ kernel-test:
 # line in the log that says every build after it ships that kernel
 .PHONY: kernel-update
 kernel-update:
-	@python3 tools/kernel.py update '$(KERNEL_RELEASE)' '$(KERNEL_URL)'
+	@python3 tools/release.py velvet update '$(KERNEL_RELEASE)' '$(KERNEL_URL)'
+
+# and the newest philemon into philemon-release.mk, the same way
+.PHONY: philemon-update
+philemon-update:
+	@python3 tools/release.py philemon update '$(PHILEMON_RELEASE)' \
+		'$(PHILEMON_URL)'
 
 #
 # a ring 3 program is built much like the kernel (freestanding, no
@@ -358,9 +401,11 @@ $(RAMDISK): $(USER_PROGS) $(RAMDISK_FILES)
 # history the clone keeps and the caches python leaves in it.
 #
 # KERNEL_FILES are named from inside the checkout, which is what lets
-# them be put under kernel/ at all
+# them be put under kernel/ at all. philemon's go in under philemon/, the
+# same way and for the same reason: the image cannot be rebuilt without
+# the loader that boots it
 SOURCE_FILES := GNUmakefile README.md CHANGELOG.md ROADMAP.md \
-                LICENSE .gitignore kernel-release.mk \
+                LICENSE .gitignore kernel-release.mk philemon-release.mk \
                 CONTRIBUTING.md CODE_OF_CONDUCT.md \
                 $(shell find .github userland toolchain tools tests docs pending \
                         -type f | sort) \
@@ -371,6 +416,11 @@ KERNEL_FILES := $(shell cd $(KERNEL_SRC) 2>/dev/null && \
                          -o -path ./obj -prune -o -name __pycache__ -prune \
                          -o -name '*.img' -prune -o -type f -print \
                   | sed 's,^\./,,' | sort)
+PHILEMON_FILES := $(shell cd $(PHILEMON_SRC) 2>/dev/null && \
+                    find . -path ./.git -prune -o -path ./bin -prune \
+                           -o -path ./obj -prune -o -name __pycache__ -prune \
+                           -o -name '*.img' -prune -o -type f -print \
+                    | sed 's,^\./,,' | sort)
 
 # --sort=name and a fixed mtime for the same reason the ramdisk has
 # them: two builds of the same tree must produce the same bytes, or the
@@ -385,26 +435,30 @@ KERNEL_FILES := $(shell cd $(KERNEL_SRC) 2>/dev/null && \
 # wants instead: everyone may read, only the owner may write, and
 # whatever was executable stays executable
 #
-# the kernel is a second tar appended to the first rather than more names
-# in it, because -C and --transform are what put its files under kernel/
-# and they would rename this tree's files too
-$(SOURCE): $(SOURCE_FILES) $(addprefix $(KERNEL_SRC)/,$(KERNEL_FILES))
+# the kernel and the loader are tars appended to the first rather than
+# more names in it, because -C and --transform are what put their files
+# under kernel/ and philemon/, and they would rename this tree's files too
+$(SOURCE): $(SOURCE_FILES) $(addprefix $(KERNEL_SRC)/,$(KERNEL_FILES)) \
+           $(addprefix $(PHILEMON_SRC)/,$(PHILEMON_FILES))
 	@mkdir -p $(@D)
-	@echo '  TAR     $@ ($(words $(SOURCE_FILES) $(KERNEL_FILES)) files)'
+	@echo '  TAR     $@ ($(words $^) files)'
 	@tar --format=ustar --sort=name --owner=0 --group=0 --numeric-owner \
 		--mtime=@0 --mode='u+rw,go+r,go-w' -cf $@ $(SOURCE_FILES)
 	@tar --format=ustar --sort=name --owner=0 --group=0 --numeric-owner \
 		--mtime=@0 --mode='u+rw,go+r,go-w' -rf $@ -C $(KERNEL_SRC) \
 		--transform 's,^,kernel/,' $(KERNEL_FILES)
+	@tar --format=ustar --sort=name --owner=0 --group=0 --numeric-owner \
+		--mtime=@0 --mode='u+rw,go+r,go-w' -rf $@ -C $(PHILEMON_SRC) \
+		--transform 's,^,philemon/,' $(PHILEMON_FILES)
 
-# the image is philemon's format, so it is written by philemon's tool,
-# which lives with philemon in the kernel. what goes in it is this system's:
-# its ramdisk and its source
-$(BOOTIMG): $(KBIN)/boot/philemon.bin $(KBIN)/boot/philemon64.bin \
-            $(KBIN)/$(KERNEL) $(RAMDISK) $(SOURCE) $(KERNEL_SRC)/tools/mkboot.py \
-            $(KERNEL_SRC)/boot/philemon.inc $(KERNEL_SRC)/include/velvet/philemon.h
-	@python3 $(KERNEL_SRC)/tools/mkboot.py $@ $(KBIN)/boot/philemon.bin \
-		$(KBIN)/boot/philemon64.bin $(KBIN)/$(KERNEL) $(RAMDISK) $(SOURCE)
+# the image is philemon's format, so it is written by philemon's own
+# tool, out of his tree. what goes in it is this system's: its kernel, its
+# ramdisk and its source
+$(BOOTIMG): $(PBIN)/philemon.bin $(PBIN)/philemon64.bin \
+            $(KBIN)/$(KERNEL) $(RAMDISK) $(SOURCE) \
+            $(PHILEMON_SRC)/tools/mkboot.py
+	@python3 $(PHILEMON_SRC)/tools/mkboot.py $@ $(PBIN)/philemon.bin \
+		$(PBIN)/philemon64.bin $(KBIN)/$(KERNEL) $(RAMDISK) $(SOURCE)
 
 bootimg: $(BOOTIMG)
 
@@ -663,9 +717,10 @@ toolchain: bin/tests/asm bin/tests/link bin/tests/make
 # our make takes no variables on its command line, so where the kernel is
 # goes to it in a file kernel.mk includes
 selfhost: bin/tests/make bin/tests/asm bin/tests/link $(KERNEL_OUT) \
-          $(RAMDISK) $(SOURCE)
+          $(PHILEMON_OUT) $(RAMDISK) $(SOURCE)
 	@mkdir -p obj/toolchain
-	@echo 'KSRC = $(KERNEL_SRC)' > obj/toolchain/kernel-src.mk
+	@printf 'KSRC = $(KERNEL_SRC)\nPSRC = $(PHILEMON_SRC)\n' \
+		> obj/toolchain/kernel-src.mk
 	@./bin/tests/make -f tests/toolchain/kernel.mk
 	@python3 tools/selfcheck.py
 
@@ -768,7 +823,8 @@ test: $(KERNEL_OUT) $(BOOTIMG) $(USER_PROGS) $(RAMDISK) $(TEST_BINS) \
 	fi; \
 	printf '  %-10s ' srccheck; \
 	if out=$$(python3 $(KERNEL_SRC)/tools/srccheck.py \
-			--with kernel=$(KERNEL_SRC) $(BOOTIMG) 2>&1); then \
+			--with kernel=$(KERNEL_SRC) --with philemon=$(PHILEMON_SRC) \
+			$(BOOTIMG) 2>&1); then \
 		echo 'ok'; \
 	else \
 		echo 'FAILED'; echo "$$out" | sed 's/^/    /'; fail=1; \

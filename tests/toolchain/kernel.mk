@@ -24,12 +24,13 @@
 #   ifdef              two ways of being told what happened
 #   ::                 below, on the one target that has two reasons
 
-# where the kernel's checkout is: the release the GNUmakefile fetches,
-# unless it was told to build another. our make takes no variables on its
-# command line, so the GNUmakefile writes the answer into
-# obj/toolchain/kernel-src.mk before it runs this, and the include is
+# where the kernel's checkout is, and the loader's: the releases the
+# GNUmakefile fetches, unless it was told to build others. our make takes
+# no variables on its command line, so the GNUmakefile writes the answers
+# into obj/toolchain/kernel-src.mk before it runs this, and the include is
 # optional so that this still runs on its own
 KSRC = obj/velvet
+PSRC = obj/philemon
 -include obj/toolchain/kernel-src.mk
 
 CC    = gcc
@@ -37,7 +38,7 @@ ASM   = bin/tests/asm
 LINK  = bin/tests/link
 GENSYMS = bin/kernel/tests/gensyms
 BIN2C = bin/kernel/tests/bin2c
-MKBOOT = bin/kernel/tests/mkboot
+MKBOOT = bin/philemon/mkboot
 
 OUT   = obj/toolchain
 BIN   = bin/toolchain
@@ -107,10 +108,10 @@ $(BIN)/velvet: $(OBJ) $(KSRC)/arch/x86_64/linker.ld $(GENSYMS) $(LINK)
 # source archive are taken the same way, and for the same reason: what
 # is being claimed here is the *kernel*, and saying so is better than
 # quietly building less of the image than it looks like
-$(BIN)/velvetos.img: $(BIN)/velvet bin/kernel/boot/philemon.bin \
-                     bin/kernel/boot/philemon64.bin bin/ramdisk.tar bin/source.tar
-	@MKBOOT_ROOT=$(KSRC) $(MKBOOT) $@ bin/kernel/boot/philemon.bin \
-		bin/kernel/boot/philemon64.bin \
+$(BIN)/velvetos.img: $(BIN)/velvet bin/philemon/philemon.bin \
+                     bin/philemon/philemon64.bin bin/ramdisk.tar bin/source.tar
+	@MKBOOT_ROOT=$(PSRC) $(MKBOOT) $@ bin/philemon/philemon.bin \
+		bin/philemon/philemon64.bin \
 		$(BIN)/velvet bin/ramdisk.tar bin/source.tar
 
 
