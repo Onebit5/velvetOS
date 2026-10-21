@@ -89,9 +89,14 @@ the targets
    programs, and the system's own source in the space past it.
 
 ``make kernel``
-   the kernel, philemon and the kernel's C build tools, built out of
-   ``kernel/`` into ``bin/kernel/``. every target that needs any of them
-   asks for this first; it answers in a moment when nothing has changed.
+   the kernel and the kernel's C build tools, built out of ``obj/velvet/``
+   into ``bin/kernel/``. every target that needs any of them asks for this
+   first; it answers in a moment when nothing has changed.
+
+``make philemon``
+   the loader, built out of ``obj/philemon/`` into ``bin/philemon/``: his
+   two halves and his image writer in C. the same: asked for by whatever
+   needs it, and quick when nothing changed.
 
 ``make userland``
    the programs and ``libc.a``, into ``base/ramdisk/bin/``.
@@ -200,8 +205,11 @@ everything generated comes back out with ``make clean``:
    toolchain.
 
 ``bin/kernel/``, ``obj/kernel/``
-   the kernel, philemon and the kernel's C tools, as the kernel's makefile
-   built them for this tree.
+   the kernel and its C tools, as the kernel's makefile built them for this
+   tree.
+
+``bin/philemon/``, ``obj/loader/``
+   philemon and his image writer, as his makefile built them.
 
 ``obj/``
    the userland's objects and ``libc.a``.
@@ -226,8 +234,9 @@ notes
 - the tree builds ``-Wall -Wextra`` and takes both seriously. a warning
   nobody can justify is a bug that has not happened yet.
 - there is no ``make iso`` target any more. the image is written by
-  philemon's own tool, the kernel's ``tools/mkboot.py``, and boots directly; the
-  old iso went away in 0.1.12, when philemon replaced the bootloader before
-  it.
+  philemon's own tool, his ``tools/mkboot.py``, and boots directly; the old
+  iso went away in 0.1.12, when philemon replaced the bootloader before it.
+  why the image has to be his, and what it takes to boot with another loader,
+  is `booting <subsystems/boot.rst>`_.
 
 .. _testing: testing.rst

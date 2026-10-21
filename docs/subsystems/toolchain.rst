@@ -194,10 +194,11 @@ zeros.
 the C build tools
 -----------------
 
-``mkext4``, ``mkfat``, ``mkboot``, ``gensyms`` and ``bin2c``, the build tools
-that were rewritten from python so a self-hosting machine would not need it,
-are the kernel's: they write the kernel's images and its filesystems through
-the kernel's own drivers, so they went to velvet with them.
+``mkext4``, ``mkfat``, ``gensyms`` and ``bin2c``, the build tools that were
+rewritten from python so a self-hosting machine would not need it, are the
+kernel's: they write its filesystems through its own drivers, and link it, so
+they went to velvet with them. ``mkboot``, the image writer, is philemon's,
+since the image is his format, and went to him.
 ``make kernel`` builds them out of ``kernel/`` into ``bin/kernel/tests/``,
 where the disk image and the self-hosted build pick them up, and
 velvet's ``docs/subsystems/tools.rst`` describes each.

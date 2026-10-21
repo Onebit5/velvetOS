@@ -31,12 +31,15 @@ at a glance
     GNUmakefile        the build
     kernel-release.mk  which velvet release the build fetches, by its
                        version
+    philemon-release.mk  and which philemon release
     ROADMAP.md         where it is going
     CHANGELOG.md       where it has been
     obj/velvet/        that release, cloned by the build with the rest of
-                       what it makes: the kernel, philemon, its suites,
-                       and the tools that write images and disks. its own
-                       tree, with its own docs/layout.rst
+                       what it makes: the kernel, its suites, and the
+                       tools that write disks. its own tree, with its own
+                       docs/layout.rst
+    obj/philemon/      the loader's release, cloned the same way: the
+                       loader, and the tool that writes the image
 
 the parts
 ---------
@@ -69,8 +72,8 @@ every program includes the syscall numbers and what the calls take from its
 ``include/uapi/velvet/``, which is the one part of the kernel's source a
 program sees; the library's string functions, hashes, deflate and dates
 are its own, in ``userland/libc/``, and not the kernel's ``lib/``, which
-is the kernel's insides; the disk image is written by its
-``tools/mkboot.py`` and the disks by its ``mkext4``; and the self-hosted
+is the kernel's insides; the disks are written by its ``mkext4``; and the
+self-hosted
 build reads its ``sources.mk`` for what the kernel is made of. every one of
 those reaches into the release ``kernel-release.mk`` names, through the one
 variable ``KERNEL_SRC`` that says where it is, so moving that file moves
@@ -95,8 +98,10 @@ everything under ``bin/`` and ``obj/`` is generated and comes back out with
 ``make clean``, the fetched release and the kernel's outputs included: the
 kernel is built into ``bin/kernel/`` and ``obj/kernel/``, never inside its
 checkout, so the release stays exactly what was fetched. the boot image,
-``velvetos.img``, is written by the kernel's ``tools/mkboot.py`` and carries
-philemon, the kernel, the ramdisk and the system's own source tree, with
-the kernel's files under ``kernel/`` in it. `building`_ is the details.
+``velvetos.img``, is written by philemon's ``tools/mkboot.py``, out of
+``obj/philemon/`` the way the kernel is reached through ``KERNEL_SRC``, and
+carries philemon, the kernel, the ramdisk and the system's own source tree,
+with the kernel's files under ``kernel/`` in it and his under
+``philemon/``. `building`_ is the details.
 
 .. _building: building.rst

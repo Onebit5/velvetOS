@@ -12,6 +12,10 @@ the release of it that ``kernel-release.mk`` names, cloned into
 ``obj/velvet/docs/``: the subsystems, the
 system calls, and how the kernel is built and tested on its own.
 
+the loader is philemon, a project of his own as well: the release
+``philemon-release.mk`` names, cloned into ``obj/philemon/``, with his
+documentation in ``obj/philemon/docs/``.
+
 it is split in two. the pages here at the root are *about the project*: how
 to build it, how to test it, how to write and send a change. the pages
 under `subsystems/ <subsystems/index.rst>`_ are *about the code*. one page
@@ -58,6 +62,8 @@ the system
   ar, git, and the self-hosted kernel.
 - `the tools <subsystems/tools.rst>`_: the toolchain's checkers and the
   boot test.
+- `booting <subsystems/boot.rst>`_: philemon, or a loader of your own, and
+  why only one of those boots.
 
 other files
 -----------

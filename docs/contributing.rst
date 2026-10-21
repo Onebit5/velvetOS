@@ -24,10 +24,13 @@ checkers for those, what goes on the medium, and which velvet release
 ``kernel-release.mk`` names.
 
 **velvet**: everything that runs in ring 0 or before it, which is
-everything a build fetches into ``obj/velvet/``. the subsystems, the shell,
-philemon, the syscall layer, and the tools that write images and disks. a
-change to any of it is a change to velvet, sent there; this tree only ever
-changes which release ``kernel-release.mk`` names.
+everything a build fetches into ``obj/velvet/``. the subsystems, the
+syscall layer, and the tools that write disks. a change to any of it is a
+change to velvet, sent there; this tree only ever changes which release
+``kernel-release.mk`` names.
+
+**philemon**: the loader, and the tool that writes the image, fetched into
+``obj/philemon/``. the same arrangement, with ``philemon-release.mk``.
 
 a change that needs both, a new syscall being the usual one, lands in
 velvet first, and waits for a velvet release that has it. this half follows

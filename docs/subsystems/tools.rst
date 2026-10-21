@@ -7,14 +7,16 @@ with no third-party imports: a tool here has to run on a machine that has
 nothing but an interpreter, which is the same constraint the machine itself
 is built under. see `python <../coding-style.rst>`_ for the style.
 
-the image builders and the kernel's own checkers are not here. they are the
-kernel's, in its ``tools/``, because what they build and check is the
-kernel and the formats it reads: philemon's image, ext4 and fat32, the
-partition tables, the source stamp. this tree calls them where it needs them,
-``mkboot.py`` to write ``velvetos.img`` and ``srccheck.py`` to read it back,
-out of the kernel's checkout (``obj/velvet/`` unless ``KERNEL_SRC`` names
-another), and velvet's
-``docs/subsystems/tools.rst`` describes each.
+the image builders and the kernel's own checkers are not here. the disk
+builders and checkers are the kernel's, in its ``tools/``, because what they
+build and check is the kernel and the formats it reads: ext4 and fat32, the
+partition tables, the source stamp. the image writer is philemon's, in his
+``tools/``, because the image is his format. this tree calls them where it
+needs them, ``mkboot.py`` out of philemon's checkout to write
+``velvetos.img`` and ``srccheck.py`` out of the kernel's to read it back
+(``obj/philemon/`` and ``obj/velvet/``, unless ``PHILEMON_SRC`` or
+``KERNEL_SRC`` names another), and each project's ``docs/`` describes its
+own.
 
 the second opinion
 ------------------
