@@ -52,21 +52,34 @@ checked against the GNU one it replaces. writing a C compiler would mean
 the kernel could only use the C that compiler had learned, which is a
 hostage rather than a tool, and nothing above needs one.
 
-**0.4.2 the network and the installer, as programs.** velvet 0.4.3 took
-dhcp, the resolver, http and the installer out of the kernel, and they are
-this tree's to write now. they are not written from nothing: `pending/`
-holds them as velvet had them, the protocols pure already and tested
-against captured packets, and each becomes a program the way the kernel's
+**0.4.2 what the kernel gave back, as programs.** velvet 0.4.3 took dhcp,
+the resolver, http and the installer out of the kernel, and 0.4.4 took the
+filesystem checker, the source reader and the kernel's monitor, and they
+are this tree's to write now. they are not written from nothing:
+`pending/` holds them as velvet had them, the protocols pure already and
+tested against captured packets, the checker and the reader already working
+through function pointers, and each becomes a program the way the kernel's
 shell became `sh` in 0.4.1. `dhcp`, started by init, leases the address
 and hands it to the kernel, and writes the name server it was offered into
 `/etc/resolv.conf`; the resolver is the library's, and `host` asks it;
-`fetch` pulls a file down over http; and `install` copies the medium the
-machine booted from onto a blank drive. dhcp and install need velvet
-0.4.4, a call that sets the address and a drive a program can write by
-sector, so this version moves the pin to it, and the self-hosted build's
-arch define becomes `VELVET_ARCH_X86_64` on the way. *ends when the boot
-test leases an address, resolves a name and fetches a file, all from
-ring 3, a machine installs itself onto a blank drive that then boots, and
+`fetch` pulls a file down over http. `fsck` checks a filesystem by reading
+its partition, with the checker the kernel ran, and `src` reads the archive
+on the boot medium the same way and verifies it against a stamp this
+tree's build writes, rather than one linked into the kernel, with
+`srcstamp` and `srccheck` this tree's tools now. `install` copies the
+medium the machine booted from onto a blank drive, and asks which loader
+the drive gets: philemon, or none, for someone who will put another there
+by hand, after the warning `docs/subsystems/boot.rst` gives, since velvet
+starts no other way. all of them but the resolver and `fetch` need velvet
+0.4.5, the calls that set the address and reach a drive by sector, so this
+version moves the pin to it. on the way the self-hosted build's arch
+define becomes `VELVET_ARCH_X86_64` and it stops linking a stamp into the
+kernel, the boot test stops looking for what velvet stopped printing, and
+init decides what the fifth console, the monitor's until then, is for.
+*ends when the boot test leases an address, resolves a name and fetches a
+file, all from ring 3, checks its own filesystems with `fsck` and its own
+source with `src`, a machine installs itself onto a blank drive that then
+boots, the same install with no loader leaves a drive that does not, and
 `pending/` is gone.*
 
 **0.4.3 the disk that continues the project.** what is left over is not a
@@ -74,8 +87,8 @@ compiler, and none of it was ever going to be. a **ustar writer**, named
 at 0.3.26 as the gap: this machine reads two archives and can write
 neither, and `tar` lives on the development machine. `srcstamp` in C,
 since 0.3.26 left that one in python and a source stamp nobody can
-recompute is a claim rather than a check; the tool is the kernel's, so
-that half is a change to velvet. with those, and `mkboot`, `mkfat`,
+recompute is a claim rather than a check; the tool has been this tree's
+since velvet gave it up in 0.4.4. with those, and `mkboot`, `mkfat`,
 `mkext4`, `bin2c` and `gensyms` already being C since 0.3.21, an installed
 velvetOS can write a whole `velvetos.img` and put it on a second disk.
 then the version is the test performed rather than described: a machine
@@ -102,12 +115,12 @@ in beside the system disk and comes out booting on another machine.*
 
 **0.4.5 the machine replaces its own kernel.** build, link, install and
 offer a reboot, from inside velvetOS, in place: the source has been on the
-disk since 0.3.26 and everything that reads it is already ours. velvet
-0.4.5 and 0.4.6 are what make it safe to try: a boot that can choose
+disk since 0.3.26 and everything that reads it is already ours. philemon
+1.1.0 and 1.2.0 are what make it safe to try: a boot that can choose
 between two kernels, and one that falls back to the old kernel when the
 new one does not come up. which moment counts as up is this tree's to
 say: init says a boot was good once every console has its login, and a
-kernel that never gets that far is the one velvet falls back from. *ends with the test 0.4.3 describes performed
+kernel that never gets that far is the one philemon falls back from. *ends with the test 0.4.3 describes performed
 for real: one line of the kernel changed on the machine itself, `make`,
 install, reboot into the change, and the commit made by the git that lives
 here.*
@@ -259,9 +272,8 @@ made the shell a program, with quoting and its jobs run through the
 kernel's calls, it kept that language so the scripts written for it kept
 running. this is the other side of that argument: `fi` and `done`, `&&`,
 `||`, subshells, `$( )` and functions, in the same program. the kernel's
-own shell became a monitor in velvet 0.4.2, for when the disk is broken,
-which is the better outcome than replacing it: one shell for that, and
-one for work.
+own shell became a monitor in velvet 0.4.2 and was gone by 0.4.4, so this
+is the one shell there is, for work and for a broken disk alike.
 
 **0.6.1 a shell that remembers.** up-arrow history that survives a
 reboot, and completion that knows about users and groups as well as
