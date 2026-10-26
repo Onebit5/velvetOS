@@ -30,7 +30,7 @@ names; the steps below read the same against either.
 choosing a loader when installing
 ---------------------------------
 
-the installer comes back as a program in 0.4.2, and when it does it asks
+the installer comes back as a program in 0.4.3, and when it does it asks
 which loader the drive gets:
 
 ``philemon``

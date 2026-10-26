@@ -52,37 +52,56 @@ checked against the GNU one it replaces. writing a C compiler would mean
 the kernel could only use the C that compiler had learned, which is a
 hostage rather than a tool, and nothing above needs one.
 
-**0.4.2 what the kernel gave back, as programs.** velvet 0.4.3 took dhcp,
+**0.4.2 the interface every program speaks.** velvet 0.4.5 answers with
+the system calls every x86_64 libc makes, by their numbers, and with
+nothing of its own: no `getkey`, no `screen`, `cursor` or `clear`, no
+`spawn`, no environment kept for a process, no `ttymode`. so this tree's
+libc moves first, and every program with it. its `syscall` stubs take
+velvet's new numbers and turn minus an errno into `errno`; `crt0` reads
+argc, argv, envp and the auxiliary vector off the stack exec leaves, and
+the environment is the library's to keep; `opendir` reads `getdents64`,
+`stat` fills the layout every program has, and `wait` decodes the status
+with the macros. a handler is installed with `rt_sigaction` and returns
+through a restorer the library gives. the terminal is termios through
+`ioctl`: `sh`'s line editing and job control and the editor's raw keys are
+`tcsetattr`, `tcsetpgrp` and the escape sequences the console sends, and
+the editor paints the screen with escape sequences rather than calls. on
+the way the self-hosted build's arch define becomes `VELVET_ARCH_X86_64`
+and it stops linking a stamp into the kernel, the boot test stops looking
+for what velvet stopped printing, and init decides what the fifth console,
+the monitor's until then, is for. the pin moves to velvet 0.4.5. *ends
+when every program in the image runs on velvet 0.4.5 and the boot test
+passes as it did on 0.4.2.*
+
+**0.4.3 what the kernel gave back, as programs.** velvet 0.4.3 took dhcp,
 the resolver, http and the installer out of the kernel, and 0.4.4 took the
 filesystem checker, the source reader and the kernel's monitor, and they
 are this tree's to write now. they are not written from nothing:
 `pending/` holds them as velvet had them, the protocols pure already and
-tested against captured packets, the checker and the reader already working
-through function pointers, and each becomes a program the way the kernel's
-shell became `sh` in 0.4.1. `dhcp`, started by init, leases the address
+tested against captured packets, the checker and the reader already
+working through function pointers, and each becomes a program the way the
+kernel's shell became `sh` in 0.4.1, on sockets rather than the handle
+calls it was taken out with. `dhcp`, started by init, leases the address
 and hands it to the kernel, and writes the name server it was offered into
 `/etc/resolv.conf`; the resolver is the library's, and `host` asks it;
 `fetch` pulls a file down over http. `fsck` checks a filesystem by reading
-its partition, with the checker the kernel ran, and `src` reads the archive
-on the boot medium the same way and verifies it against a stamp this
-tree's build writes, rather than one linked into the kernel, with
+its partition, with the checker the kernel ran, and `src` reads the
+archive on the boot medium the same way and verifies it against a stamp
+this tree's build writes, rather than one linked into the kernel, with
 `srcstamp` and `srccheck` this tree's tools now. `install` copies the
 medium the machine booted from onto a blank drive, and asks which loader
 the drive gets: philemon, or none, for someone who will put another there
 by hand, after the warning `docs/subsystems/boot.rst` gives, since velvet
 starts no other way. all of them but the resolver and `fetch` need velvet
-0.4.5, the calls that set the address and reach a drive by sector, so this
-version moves the pin to it. on the way the self-hosted build's arch
-define becomes `VELVET_ARCH_X86_64` and it stops linking a stamp into the
-kernel, the boot test stops looking for what velvet stopped printing, and
-init decides what the fifth console, the monitor's until then, is for.
-*ends when the boot test leases an address, resolves a name and fetches a
-file, all from ring 3, checks its own filesystems with `fsck` and its own
-source with `src`, a machine installs itself onto a blank drive that then
-boots, the same install with no loader leaves a drive that does not, and
-`pending/` is gone.*
+0.4.6, the ioctls that set the address and the drives as block devices
+read by sector, so this version moves the pin to it. *ends when the boot
+test leases an address, resolves a name and fetches a file, all from ring
+3, checks its own filesystems with `fsck` and its own source with `src`, a
+machine installs itself onto a blank drive that then boots, the same
+install with no loader leaves a drive that does not, and `pending/` is
+gone.*
 
-**0.4.3 the disk that continues the project.** what is left over is not a
+**0.4.4 the disk that continues the project.** what is left over is not a
 compiler, and none of it was ever going to be. a **ustar writer**, named
 at 0.3.26 as the gap: this machine reads two archives and can write
 neither, and `tar` lives on the development machine. `srcstamp` in C,
@@ -104,8 +123,8 @@ one. no debugger, so a fault is read the way faults have been read here
 since the beginning: a backtrace, a symbol, and the source that is now
 sitting on the same disk.
 
-**0.4.4 installing what was built.** 0.4.3 gives the machine the pieces
-to write an image, and 0.4.2's `install` copies the medium the machine
+**0.4.5 installing what was built.** 0.4.4 gives the machine the pieces
+to write an image, and 0.4.3's `install` copies the medium the machine
 booted from; this writes the image the machine built instead, onto a disk
 that is not the one it booted from: a partition table, philemon in the first sector, the
 kernel, the ramdisk and the source, written by velvetOS on the machine
@@ -113,14 +132,14 @@ being installed. the development host is not in this sentence, and
 neither are `mkboot`, `mkfat` and `mkext4`. *ends when a blank disk goes
 in beside the system disk and comes out booting on another machine.*
 
-**0.4.5 the machine replaces its own kernel.** build, link, install and
+**0.4.6 the machine replaces its own kernel.** build, link, install and
 offer a reboot, from inside velvetOS, in place: the source has been on the
 disk since 0.3.26 and everything that reads it is already ours. philemon
 1.1.0 and 1.2.0 are what make it safe to try: a boot that can choose
 between two kernels, and one that falls back to the old kernel when the
 new one does not come up. which moment counts as up is this tree's to
 say: init says a boot was good once every console has its login, and a
-kernel that never gets that far is the one philemon falls back from. *ends with the test 0.4.3 describes performed
+kernel that never gets that far is the one philemon falls back from. *ends with the test 0.4.4 describes performed
 for real: one line of the kernel changed on the machine itself, `make`,
 install, reboot into the change, and the commit made by the git that lives
 here.*
@@ -242,7 +261,7 @@ every step before the one that commits has to leave the disk as it was.
 
 **what this series deliberately does not reach.** no remote login: a
 machine with users on a wire wants ssh, and ssh needs 0.5.4's primitives
-*and* a pseudo-terminal layer, which is velvet 0.6.7. that is 0.6.6 here,
+*and* a pseudo-terminal layer, which is velvet 0.4.7. that is 0.6.6 here,
 once both exist.
 
 ## 0.6.x: the machine runs software it did not write
@@ -312,10 +331,10 @@ worth having.
 `libc.so`. it needs position-independent code, which velvet 0.5.4 already
 wanted for the program base, and it pays for itself where this project is
 tightest: the ramdisk currently carries a copy of `printf` per program.
-the kernel's half, mapping the loader a program names, is velvet 0.6.9.
+the kernel's half, mapping the loader a program names, is velvet 0.4.10.
 
 **0.6.6 a remote shell.** ssh needs the primitives and a pty layer, and
-both were somewhere else; 0.5.4 and velvet 0.6.7 are those. the value is
+both were somewhere else; 0.5.4 and velvet 0.4.7 are those. the value is
 the same as every other port here: the test is somebody else's client,
 speaking a protocol we did not design, against a server that has to be
 right about every byte of it.
@@ -331,7 +350,7 @@ poured.
 
 **0.6.8 the machine fetches its own source.** git in this image can commit
 and cannot reach anything, and 0.6.6 proved the primitives. this is
-0.4.2's resolver put to use, a route off the one segment, the ssh that is
+0.4.3's resolver put to use, a route off the one segment, the ssh that is
 already here or the tls from 0.5.4, and packfiles at both ends: `clone`, `pull` and `push` against a
 real remote. the pull request stays somebody else's problem, which is the
 point: a push is a ref, and a browser is not required to open one. *ends
@@ -356,10 +375,10 @@ EFI system partition, and this machine has read gpt since 0.2.15, read and
 written fat32 since 0.1.10, and been able to format one since 0.3.21. so
 this is a small version: the installer writes a gpt with its protective
 mbr, lays down an ESP beside the two partitions 0.3.25 already arranges,
-and puts velvet 0.7.0's loader where firmware looks rather than where
-philemon put it.
+and puts philemon 1.3.0, the loader uefi starts, where firmware looks
+rather than where his first sector sits.
 
-**0.7.1 the time, from somewhere that knows it.** ntp. velvet 0.7.5 makes
+**0.7.1 the time, from somewhere that knows it.** ntp. velvet 0.6.4 makes
 the clock right and lets ring 3 set it; this is the program that knows
 what to set it to. it matters more than it looks, because 0.5.4 turned
 certificates into claims about dates: a laptop whose coin cell died
@@ -383,8 +402,8 @@ another, tracing and a profiler. what the system adds is the program a
 person uses to ask.
 
 **0.8.0 a debugger.** breakpoints, stepping, registers, memory read and
-write, and the symbols and lines velvet 0.8.0 made readable, through
-velvet 0.8.2's way of reaching into another process. it is the first
+write, and the symbols and lines velvet 0.7.0 made readable, through
+velvet 0.7.2's way of reaching into another process. it is the first
 program here whose whole job is to look inside another one, which is why
 it waits on a kernel that can say who may. it is checked the way the
 kernel's core dumps are: the same program debugged here and with gdb on
@@ -394,10 +413,10 @@ past the fault.*
 
 **0.8.1 a tracer.** every call a program makes, as it makes it, with its
 arguments in words: a path as the path, a flags word as the names of its
-flags, a descriptor as the file it is. the stream is velvet 0.8.4's and
+flags, a descriptor as the file it is. the stream is velvet 0.7.4's and
 is all numbers; the words are a table per call, kept beside the uapi
 headers it reads, and a call the table does not know is printed as
 numbers rather than guessed at. checked against the same static program
-traced with strace on linux, call for call, once velvet 0.6.4 gives both
+traced with strace on linux, call for call, now that velvet 0.4.5 gives both
 machines the same numbers. *ends when a shell's pipeline is traced here
 and every call in it reads as words.*

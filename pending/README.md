@@ -9,7 +9,7 @@ the sockets and the drives. this directory holds them as they were before
 they went, the first four at velvet `92087d5` and the other two at
 `a52a64d`, velvet 0.4.3, so that making them velvetOS programs starts from
 code that has been tested and run rather than from nothing. that is
-[ROADMAP.md](../ROADMAP.md)'s 0.4.2.
+[ROADMAP.md](../ROADMAP.md)'s 0.4.3.
 
 nothing here is built, and nothing here is on the machine yet. each file is
 velvet's, at the path velvet had it under `pending/`, changed only where the
