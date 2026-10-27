@@ -5,5 +5,5 @@
 # names another release. a released tag is never moved, so the version is
 # all there is to write down. `make philemon-update` moves this file to the
 # newest stable release and fetches it.
-PHILEMON_VERSION := 1.0.0
+PHILEMON_VERSION := 1.0.1
 PHILEMON_URL     ?= https://github.com/Onebit5/philemon.git
