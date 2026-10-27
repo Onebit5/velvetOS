@@ -193,11 +193,16 @@ philemon-update:
 # libc) but without -mcmodel=kernel, since it lives at 0x400000 in
 # the low half rather than up in the higher one. it gets copied into
 # the ramdisk, which is how the kernel finds it.
+#
+# and, like the kernel, for any x86_64. what gcc assumes otherwise is
+# its distribution's choice, and the one in ubuntu's amd64v3 archive
+# assumes bmi2 and avx2, which qemu's default cpu does not have
 
 UCFLAGS := -Wall -Wextra -std=gnu11 -O1 \
 	-ffreestanding -fno-stack-protector -fno-stack-check -fno-pic \
 	-fno-omit-frame-pointer \
-	-m64 -mno-80387 -mno-mmx -mno-sse -mno-sse2 -mno-red-zone -Iuserland \
+	-m64 -march=x86-64 -mno-80387 -mno-mmx -mno-sse -mno-sse2 \
+	-mno-red-zone -Iuserland \
 	-Iuserland/libc -I$(KERNEL_SRC)/include
 
 # what a program and the kernel agree on: the syscall numbers, the structs
