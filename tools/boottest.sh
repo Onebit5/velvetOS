@@ -70,6 +70,7 @@ echo "booting $BOOTIMG and driving the shell over serial..."
 
 # the sleeps matter: the kernel has to get all the way to a prompt
 # before it can hear me, and each command needs a beat to answer
+rc=0
 {
     sleep 8
     printf 'igor\r';   sleep 1
@@ -148,14 +149,20 @@ echo "booting $BOOTIMG and driving the shell over serial..."
     printf 'src unpack /work/src\r'; sleep 12
     printf 'cat /work/src/kernel/include/velvet/philemon.h\r'; sleep 3
     printf 'sync\r';   sleep 2
-} | timeout 300 qemu-system-x86_64 \
+    # what ends the run is the machine powering itself off, once it has
+    # answered everything above. a fixed five minutes was a race against
+    # how fast qemu is that day, and a slow day lost it while the
+    # machine was still answering. the timeout is only for one that
+    # never gets this far
+    printf 'poweroff\r'
+} | timeout 600 qemu-system-x86_64 \
         -M q35 -m 2G -smp "${CPUS:-2}" -boot order=c \
         -drive id=boot,file="$BOOTIMG",format=raw,if=none \
         -device ide-hd,drive=boot,bus=ide.0,bootindex=0 \
         -drive id=data,file="$DISK",format=raw,if=none \
         -device ide-hd,drive=data,bus=ide.1,bootindex=1 \
         -display none -serial stdio -no-reboot \
-        > "$LOG" 2>&1 || true
+        > "$LOG" 2>&1 || rc=$?
 
 fail=0
 check() {
@@ -301,6 +308,15 @@ if grep -qF 'KERNEL PANIC' "$LOG"; then
     fail=1
 else
     echo '  ok    no panic'
+fi
+
+# and did it come down when it was done, rather than being stopped
+check 'machine down' 'The Velvet Room fades'
+if [ "$rc" -eq 124 ]; then
+    echo '  FAIL  it never powered off, and the timeout stopped it'
+    fail=1
+else
+    echo '  ok    it powered itself off'
 fi
 
 if [ "$fail" -ne 0 ]; then

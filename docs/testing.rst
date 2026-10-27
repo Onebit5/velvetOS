@@ -149,8 +149,10 @@ the one that needs a machine:
 it builds the image, boots it headless in qemu, and **types commands at
 the shell over the serial port**, checking the answers. that is only
 possible because com1 feeds the same input queue the keyboard does. the
-serial log is left in ``bin/*-boottest.log``, and CI uploads it, with the
-boot image, when a run fails.
+last command powers the machine off, and that is what ends the run: the
+timeout is only for a machine that never gets there. the serial log is
+left in ``bin/*-boottest.log``, and CI uploads it, with the boot image,
+when a run fails.
 
 this is the whole machine, and the only check that is. the kernel's own boot
 test boots a medium with no programs on it; this one runs them, in ring 3,
